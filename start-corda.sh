@@ -16,6 +16,7 @@ echo ""
 
 # Set environment variables
 export DATABASE_URL="file:./var/data/corda/database.db"
+export CORDA_DATA_PATH="./var/data/corda"
 export JWT_SECRET="corda-super-secret-jwt-key-2024"
 export ADMIN_PASSWORD="CordaAdmin2024!"
 export CORDA_ADMIN_PASSWORD="CordaAdmin2024!"
