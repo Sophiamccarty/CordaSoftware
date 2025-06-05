@@ -127,12 +127,54 @@ CORDA-BESTATTERSOFTWARE/
 - `GET /api/posten` - Verfügbare Posten
 - `POST /api/posten` - Neuen Posten erstellen
 
+## 💾 Datenbank & Storage
+
+### 🗄️ **Eigenes Datenbank-System**
+CORDA verwendet ein eigenes, dateibasiertes Datenbank-System, das speziell für Render.com optimiert ist:
+
+```
+/var/data/corda/                    # Hauptdatenbank-Verzeichnis
+├── database.db                     # SQLite Hauptdatenbank (optional)
+├── sterbefaelle/                   # Sterbefall-Daten
+│   ├── 2024/                      # Jahr-basierte Struktur
+│   │   ├── 01/                    # Monats-Ordner
+│   │   └── 02/
+│   └── aktiv/                     # Aktive Fälle
+├── vorlagen/                       # Posten-Vorlagen
+│   ├── system/                    # System-Vorlagen
+│   └── benutzer/                  # Benutzer-Vorlagen
+├── listen/                         # Gespeicherte Listen
+├── backups/                       # Automatische Backups
+│   ├── daily/                     # Tägliche Backups
+│   └── weekly/                    # Wöchentliche Backups
+├── uploads/                       # Datei-Uploads
+│   ├── dokumente/                 # PDF-Dokumente
+│   └── bilder/                    # Bilder & Fotos
+└── logs/                          # System-Logs
+    ├── access.log                 # Zugriffs-Logs
+    └── error.log                  # Fehler-Logs
+```
+
+### ☁️ **Render.com Integration**
+- **Persistent Disk**: Montiert unter `/var/data`
+- **Automatische Backups**: Tägliche Sicherung der kritischen Daten
+- **Skalierbar**: Speicher kann bei Bedarf erweitert werden
+- **Hochverfügbar**: Render.com garantiert 99.9% Uptime
+
+### 🔄 **Daten-Management**
+- **JSON-basiert**: Flexibles Schema für schnelle Entwicklung
+- **SQLite Integration**: Für komplexe Abfragen und Reporting
+- **Automatische Migration**: Seamless Updates zwischen Versionen
+- **Crash-Recovery**: Automatische Wiederherstellung bei Systemfehlern
+
 ## 🔒 Sicherheit
 
 - **Input Validation**: Zod-basierte Eingabevalidierung
 - **SQL Injection Protection**: Prisma ORM
 - **XSS Protection**: Next.js built-in Schutz
 - **CSRF Protection**: Implementiert über Next.js
+- **Daten-Verschlüsselung**: Sensible Daten werden verschlüsselt gespeichert
+- **Backup-Verschlüsselung**: Alle Backups sind AES-256 verschlüsselt
 
 ## 🧪 Testing
 
@@ -146,15 +188,35 @@ npm run test:e2e
 
 ## 📦 Deployment
 
-### Vercel (Empfohlen)
+### Render.com (Primär - mit Disk Storage)
+1. **Web Service erstellen**
+   - Build Command: `npm install && npm run build`
+   - Start Command: `npm start`
+   - Environment: Node.js
+
+2. **Disk Storage hinzufügen**
+   - Mount Path: `/var/data`
+   - Mindestens 2GB Speicher
+   - Automatische Backups aktivieren
+
+3. **Umgebungsvariablen setzen**
+   ```env
+   NODE_ENV=production
+   DATABASE_URL=file:/var/data/corda/database.db
+   CORDA_DATA_PATH=/var/data/corda
+   NEXT_PUBLIC_APP_URL=https://your-app.onrender.com
+   ```
+
+### Vercel (Alternative - ohne persistente Daten)
 1. Repository mit Vercel verbinden
 2. Umgebungsvariablen setzen
 3. Automatisches Deployment bei Push
+⚠️ **Hinweis**: Ohne persistente Datenbank
 
 ### Andere Plattformen
 - **Docker**: Dockerfile enthalten
-- **VPS**: PM2 oder ähnlich
-- **Cloud**: AWS, Google Cloud, Azure
+- **VPS**: PM2 oder ähnlich mit persistentem Storage
+- **Cloud**: AWS, Google Cloud, Azure mit Volume Mounting
 
 ## 🤝 Contributing
 
