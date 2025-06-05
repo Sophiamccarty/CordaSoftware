@@ -1,0 +1,174 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User Management
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  email     String?  @unique
+  password  String
+  firstName String
+  lastName  String
+  role      String   // UserRole as string
+  
+  // Company relation
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+  
+  // Activity tracking
+  activities Activity[]
+  
+  // Metadata
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("users")
+}
+
+// Company/Tenant Management
+model Company {
+  id          String @id @default(cuid())
+  name        String
+  address     String
+  city        String
+  postalCode  String
+  phone       String
+  email       String
+  website     String?
+  
+  // Configuration
+  settings    String?  // JSON as string
+  isActive    Boolean  @default(true)
+  
+  // Relations
+  users       User[]
+  sterbefaelle Sterbefall[]
+  vorsorge    Vorsorge[]
+  activities  Activity[]
+  
+  // Metadata
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("companies")
+}
+
+// Death Cases (Sterbefälle)
+model Sterbefall {
+  id              String   @id @default(cuid())
+  fallNummer      String   @unique
+  
+  // Verstorbene Person
+  verstorbener    String   // PersonData as JSON string
+  
+  // Angehörige
+  angehoerige     String?  // AngehoerigeData[] as JSON string
+  
+  // Bestattung
+  bestattungsart  String   // Bestattungsart as string
+  bestattungsort  String?
+  friedhof        String?
+  grabstelle      String?
+  
+  // Trauerfeier
+  trauerfeier     String?  // TrauerfeierData as JSON string
+  
+  // Dokumente & KI
+  dokumente       String?  // DokumentData[] as JSON string
+  kiGeneriert     String?  // KI generated content as JSON string
+  
+  // Behörden
+  behoerden       String?  // BehoerdenData as JSON string
+  
+  // Status & Workflow
+  status          String   // SterbefallStatus as string
+  prioritaet      String   @default("NORMAL")
+  
+  // Financial
+  kostenvoranschlag Decimal?
+  rechnungsbetrag   Decimal?
+  
+  // Company relation
+  companyId       String
+  company         Company @relation(fields: [companyId], references: [id])
+  
+  // Activities
+  activities      Activity[]
+  
+  // Metadata
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("sterbefaelle")
+}
+
+// Advance Planning (Vorsorge)
+model Vorsorge {
+  id              String   @id @default(cuid())
+  vorsorgNummer   String   @unique
+  
+  // Person
+  person          String   // PersonData as JSON string
+  
+  // Bestattungswünsche
+  bestattungsart  String?  // Bestattungsart as string
+  friedhofswunsch String?
+  besondereWuensche String? // JSON string
+  
+  // Financial
+  finanzierung    String?  // FinanzierungData as JSON string
+  betrag          Decimal?
+  
+  // Status
+  status          String   // VorsorgeStatus as string
+  
+  // Company relation
+  companyId       String
+  company         Company @relation(fields: [companyId], references: [id])
+  
+  // Activities
+  activities      Activity[]
+  
+  // Metadata
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("vorsorge")
+}
+
+// Activity Log
+model Activity {
+  id          String   @id @default(cuid())
+  type        String   // ActivityType as string
+  title       String
+  description String
+  details     String?  // JSON string
+  
+  // Relations
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  
+  sterbefallId String?
+  sterbefall   Sterbefall? @relation(fields: [sterbefallId], references: [id])
+  
+  vorsorgeId   String?
+  vorsorge     Vorsorge?   @relation(fields: [vorsorgeId], references: [id])
+  
+  // Metadata
+  createdAt   DateTime @default(now())
+  
+  @@map("activities")
+} 

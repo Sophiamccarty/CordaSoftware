@@ -1,0 +1,209 @@
+[
+  {
+    "id": "17487270516831i5hqw1eu",
+    "auftrag": {
+      "sachbearbeiter": "Aktueller Benutzer",
+      "filiale": "Hauptsitz",
+      "hatVorsorge": false,
+      "bestattungsart": "Feuerbestattung"
+    },
+    "verstorbener": {
+      "anrede": "Frau",
+      "vornamen": "Sophia",
+      "rufname": "Sophia",
+      "nachname": "Hylla",
+      "staatsangehoerigkeit": "deutsch",
+      "familienstand": "ledig",
+      "konfession": "konfessionslos",
+      "strasse": "Burgwall",
+      "hausnummer": "14",
+      "plz": "38229",
+      "ort": "Salzgitter",
+      "geburtsdatum": "1999-12-27",
+      "geburtsort": "Salzgitter",
+      "geburtsStandesamt": "Salzgitter",
+      "geburtenregisternummer": "890809",
+      "todesart": "natürlich",
+      "sterbeort": "",
+      "infektios": false,
+      "standesamt": "Salzgitter",
+      "sterberegisternummer": "8908",
+      "arzt": "908 9",
+      "bemerkungen": "",
+      "verstorbenAm": "2025-05-15T23:28"
+    },
+    "auftraggeber": {
+      "anrede": "Frau",
+      "vornamen": "Nina",
+      "nachname": "Hylla",
+      "strasse": "Burgwall",
+      "hausnummer": "14",
+      "plz": "38229",
+      "ort": "Salzgitter",
+      "beziehung": "Ehepartner/in",
+      "staatsangehoerigkeit": "deutsch",
+      "zahlungsart": "Überweisung"
+    },
+    "ehepartner": {
+      "anrede": "Frau",
+      "strasse": "Burgwall",
+      "hausnummer": "14",
+      "plz": "38229",
+      "ort": "Salzgitter",
+      "staatsangehoerigkeit": "deutsch"
+    },
+    "bestattung": {
+      "bestattungsart": "Feuerbestattung",
+      "mitFeier": true,
+      "nutzungsrechtUebertragen": false
+    },
+    "posten": [
+      {
+        "id": "template-0",
+        "typ": "eigen",
+        "bezeichnung": "Überführung",
+        "einzelpreis": 180,
+        "anzahl": 1,
+        "gesamtpreis": 180
+      },
+      {
+        "id": "template-1",
+        "typ": "eigen",
+        "bezeichnung": "Kremationssarg",
+        "einzelpreis": 450,
+        "anzahl": 1,
+        "gesamtpreis": 450
+      },
+      {
+        "id": "template-2",
+        "typ": "eigen",
+        "bezeichnung": "Ankleiden/Einbetten",
+        "einzelpreis": 180,
+        "anzahl": 1,
+        "gesamtpreis": 180
+      },
+      {
+        "id": "template-3",
+        "typ": "eigen",
+        "bezeichnung": "Kremierung",
+        "einzelpreis": 380,
+        "anzahl": 1,
+        "gesamtpreis": 380
+      },
+      {
+        "id": "template-4",
+        "typ": "eigen",
+        "bezeichnung": "Urne Bronze",
+        "einzelpreis": 280,
+        "anzahl": 1,
+        "gesamtpreis": 280
+      },
+      {
+        "id": "template-5",
+        "typ": "eigen",
+        "bezeichnung": "Trauerfeier Organisation",
+        "einzelpreis": 280,
+        "anzahl": 1,
+        "gesamtpreis": 280
+      },
+      {
+        "id": "template-6",
+        "typ": "eigen",
+        "bezeichnung": "Standesamt Anmeldung",
+        "einzelpreis": 35,
+        "anzahl": 1,
+        "gesamtpreis": 35
+      }
+    ],
+    "fallNummer": "SF-2025-5385",
+    "status": "ERFASSUNG",
+    "createdAt": "2025-05-31T21:30:51.683Z",
+    "updatedAt": "2025-05-31T21:30:51.683Z"
+  },
+  {
+    "id": "174872736522237vx62v4w",
+    "auftrag": {
+      "sachbearbeiter": "Aktueller Benutzer",
+      "filiale": "Hauptsitz",
+      "hatVorsorge": true,
+      "bestattungsart": "",
+      "vorsorgeNummer": ""
+    },
+    "verstorbener": {},
+    "auftraggeber": {},
+    "ehepartner": {},
+    "bestattung": {
+      "bestattungsart": "",
+      "mitFeier": true
+    },
+    "posten": [],
+    "fallNummer": "SF-2025-1538",
+    "status": "ERFASSUNG",
+    "createdAt": "2025-05-31T21:36:05.222Z",
+    "updatedAt": "2025-05-31T21:36:05.222Z"
+  },
+  {
+    "id": "1748769811079r8iwndw51",
+    "auftrag": {
+      "sachbearbeiter": "Max Mustermann",
+      "filiale": "Hauptsitz",
+      "hatVorsorge": false,
+      "bestattungsart": ""
+    },
+    "verstorbener": {
+      "staatsangehoerigkeit": "deutsch"
+    },
+    "auftraggeber": {
+      "staatsangehoerigkeit": "deutsch"
+    },
+    "ehepartner": {
+      "staatsangehoerigkeit": "deutsch"
+    },
+    "angehoerige": {
+      "kinder": 1,
+      "kinderMinderjaehrig": 0,
+      "angehoerige": []
+    },
+    "bestattung": {
+      "bestattungsart": "",
+      "mitFeier": true
+    },
+    "posten": [],
+    "fallNummer": "SF-2025-1079",
+    "status": "ERFASSUNG",
+    "createdAt": "2025-06-01T09:23:31.079Z",
+    "updatedAt": "2025-06-01T09:23:31.079Z"
+  },
+  {
+    "id": "1748769812323pf0happl4",
+    "auftrag": {
+      "sachbearbeiter": "Max Mustermann",
+      "filiale": "Hauptsitz",
+      "hatVorsorge": false,
+      "bestattungsart": ""
+    },
+    "verstorbener": {
+      "staatsangehoerigkeit": "deutsch"
+    },
+    "auftraggeber": {
+      "staatsangehoerigkeit": "deutsch"
+    },
+    "ehepartner": {
+      "staatsangehoerigkeit": "deutsch"
+    },
+    "angehoerige": {
+      "kinder": 1,
+      "kinderMinderjaehrig": 0,
+      "angehoerige": []
+    },
+    "bestattung": {
+      "bestattungsart": "",
+      "mitFeier": true
+    },
+    "posten": [],
+    "fallNummer": "SF-2025-0238",
+    "status": "ERFASSUNG",
+    "createdAt": "2025-06-01T09:23:32.323Z",
+    "updatedAt": "2025-06-01T09:23:32.323Z"
+  }
+]

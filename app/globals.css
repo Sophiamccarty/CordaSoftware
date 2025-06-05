@@ -1,0 +1,404 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&display=swap');
+
+/* CSS Reset - Remove all default margins and padding */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100%;
+  height: 100%;
+}
+
+/* Root Variables */
+:root {
+  --corda-black: #000000;
+  --corda-anthracite: #1a1a1a;
+  --corda-dark: #2d2d2d;
+  --corda-white: #ffffff;
+  --corda-gold: #d4af37;
+  --corda-gold-accent: #b8941f;
+  --corda-gold-light: #f4e4a6;
+}
+
+/* Base Styles */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-corda-anthracite text-corda-white font-sans antialiased;
+  background: linear-gradient(135deg, #000000 0%, #1a1a1a 50%, #2d2d2d 100%);
+  min-height: 100vh;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-corda-black;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-corda-gold rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-corda-gold-accent;
+}
+
+/* Components */
+@layer components {
+  /* Buttons */
+  .btn-primary {
+    @apply bg-gold-gradient text-white font-medium px-6 py-3 rounded-lg shadow-gold hover:shadow-gold-lg transition-all duration-200 hover:scale-105;
+  }
+
+  .btn-secondary {
+    @apply bg-corda-dark text-corda-white border border-corda-gold font-medium px-6 py-3 rounded-lg hover:bg-corda-gold hover:text-corda-black transition-all duration-200;
+  }
+
+  .btn-danger {
+    @apply bg-red-600 text-white font-medium px-6 py-3 rounded-lg hover:bg-red-700 transition-all duration-200;
+  }
+
+  .btn-ghost {
+    @apply text-corda-gold hover:text-corda-gold-accent font-medium px-4 py-2 rounded-lg hover:bg-corda-dark transition-all duration-200;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-dark-gradient rounded-xl border border-gray-800 shadow-dark-lg backdrop-blur-sm;
+  }
+
+  .card-header {
+    @apply p-6 border-b border-gray-800;
+  }
+
+  .card-body {
+    @apply p-6;
+  }
+
+  .card-footer {
+    @apply p-6 border-t border-gray-800;
+  }
+
+  /* Forms */
+  .form-input {
+    @apply bg-corda-dark border border-gray-700 text-corda-white rounded-lg px-4 py-3 focus:border-corda-gold focus:ring-2 focus:ring-corda-gold/20 transition-all duration-200;
+  }
+
+  .form-label {
+    @apply block text-sm font-medium text-gray-300 mb-2;
+  }
+
+  .form-error {
+    @apply text-red-400 text-sm mt-1;
+  }
+
+  .form-group {
+    @apply space-y-2;
+  }
+
+  /* Navigation */
+  .nav-link {
+    @apply text-gray-300 hover:text-corda-gold px-3 py-2 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2;
+  }
+
+  .nav-link.active {
+    @apply text-corda-gold bg-corda-dark;
+  }
+
+  /* Status Badges */
+  .status-badge {
+    @apply px-3 py-1 rounded-full text-xs font-medium;
+  }
+
+  .status-erfassung {
+    @apply bg-blue-900/50 text-blue-300 border border-blue-700/50;
+  }
+
+  .status-bearbeitung {
+    @apply bg-yellow-900/50 text-yellow-300 border border-yellow-700/50;
+  }
+
+  .status-behoerden {
+    @apply bg-purple-900/50 text-purple-300 border border-purple-700/50;
+  }
+
+  .status-planung {
+    @apply bg-orange-900/50 text-orange-300 border border-orange-700/50;
+  }
+
+  .status-trauerfeier {
+    @apply bg-indigo-900/50 text-indigo-300 border border-indigo-700/50;
+  }
+
+  .status-abgeschlossen {
+    @apply bg-green-900/50 text-green-300 border border-green-700/50;
+  }
+
+  /* Tables */
+  .table {
+    @apply w-full border-collapse;
+  }
+
+  .table th {
+    @apply bg-corda-dark text-left px-6 py-4 text-gray-300 font-medium border-b border-gray-700;
+  }
+
+  .table td {
+    @apply px-6 py-4 border-b border-gray-800 text-gray-200;
+  }
+
+  .table tr:hover {
+    @apply bg-corda-dark/50;
+  }
+
+  /* Loading States */
+  .loading-skeleton {
+    @apply animate-pulse bg-gray-700 rounded;
+  }
+
+  .loading-spinner {
+    @apply animate-spin rounded-full border-4 border-gray-700 border-t-corda-gold;
+  }
+
+  /* Animations */
+  .fade-in {
+    @apply animate-fade-in;
+  }
+
+  .slide-in {
+    @apply animate-slide-in;
+  }
+
+  .scale-in {
+    @apply animate-scale-in;
+  }
+
+  /* Layout */
+  .container-fluid {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .page-header {
+    @apply flex justify-between items-center mb-8;
+  }
+
+  .page-title {
+    @apply text-3xl font-bold text-corda-white font-serif;
+  }
+
+  .page-subtitle {
+    @apply text-gray-400 mt-2;
+  }
+
+  /* Dashboard */
+  .stat-card {
+    @apply card p-6 text-center;
+  }
+
+  .stat-value {
+    @apply text-3xl font-bold text-corda-gold mb-2;
+  }
+
+  .stat-label {
+    @apply text-gray-400 text-sm;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    @apply fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4;
+  }
+
+  .modal-content {
+    @apply card max-w-2xl w-full max-h-[90vh] overflow-y-auto;
+  }
+
+  .modal-header {
+    @apply card-header flex justify-between items-center;
+  }
+
+  .modal-title {
+    @apply text-xl font-semibold text-corda-white;
+  }
+
+  /* Toast Notifications */
+  .toast-success {
+    @apply bg-green-900 border border-green-700 text-green-100;
+  }
+
+  .toast-error {
+    @apply bg-red-900 border border-red-700 text-red-100;
+  }
+
+  .toast-warning {
+    @apply bg-yellow-900 border border-yellow-700 text-yellow-100;
+  }
+
+  .toast-info {
+    @apply bg-blue-900 border border-blue-700 text-blue-100;
+  }
+
+  /* KI Assistant Styles */
+  .ki-assistant {
+    @apply card border-corda-gold/30 shadow-gold;
+  }
+
+  .ki-response {
+    @apply bg-corda-black/50 border border-corda-gold/20 rounded-lg p-4 font-mono text-sm;
+  }
+
+  .ki-loading {
+    @apply text-corda-gold animate-pulse-gold;
+  }
+
+  /* Workflow Progress */
+  .workflow-step {
+    @apply flex items-center space-x-4 p-4 rounded-lg border border-gray-700;
+  }
+
+  .workflow-step.completed {
+    @apply bg-green-900/20 border-green-700/50;
+  }
+
+  .workflow-step.active {
+    @apply bg-corda-gold/10 border-corda-gold/50;
+  }
+
+  .workflow-step.pending {
+    @apply bg-gray-800/50 border-gray-700;
+  }
+
+  /* Print Styles */
+  @media print {
+    body {
+      @apply bg-white text-black;
+    }
+    
+    .no-print {
+      display: none !important;
+    }
+  }
+
+  /* Glass Morphism Effects */
+  .glass-morphism-card {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl;
+  }
+
+  .glass-morphism-button {
+    @apply bg-white/10 backdrop-blur-xl border border-white/20 shadow-lg hover:bg-white/20 transition-all duration-300;
+  }
+
+  /* Custom Scrollbar for Activity Feed */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-corda-gold/50 rounded-full;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-corda-gold/70;
+  }
+
+  /* Enhanced Animations */
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slide-in {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  @keyframes glow {
+    0%, 100% {
+      box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 40px rgba(212, 175, 55, 0.6);
+    }
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite;
+  }
+}
+
+/* Utilities */
+@layer utilities {
+  .text-gradient {
+    @apply bg-gold-gradient bg-clip-text text-transparent;
+  }
+
+  .border-gradient {
+    border-image: linear-gradient(135deg, #d4af37, #b8941f) 1;
+  }
+
+  .glass-effect {
+    @apply backdrop-blur-sm bg-white/5 border border-white/10;
+  }
+
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  }
+
+  .elegant-shadow {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+  }
+} 
