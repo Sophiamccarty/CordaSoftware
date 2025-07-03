@@ -234,5 +234,121 @@
     "status": "ENTWURF",
     "createdAt": "2025-06-12T18:06:33.439Z",
     "updatedAt": "2025-06-12T18:06:33.439Z"
+  },
+  {
+    "id": "1751528851218dmb5aehul",
+    "auftrag": {
+      "sachbearbeiter": "Max Mustermann",
+      "filiale": "Hauptsitz",
+      "hatVorsorge": false,
+      "bestattungsart": ""
+    },
+    "verstorbener": {
+      "staatsangehoerigkeit": "deutsch"
+    },
+    "auftraggeber": {
+      "staatsangehoerigkeit": "deutsch"
+    },
+    "ehepartner": {},
+    "angehoerige": {
+      "angehoerige": [],
+      "kinderVorhanden": false
+    },
+    "bestattung": {
+      "bestattungsart": "",
+      "mitFeier": true
+    },
+    "posten": [],
+    "fallNummer": "SF-2025-0530",
+    "status": "ERFASSUNG",
+    "createdAt": "2025-07-03T07:47:31.218Z",
+    "updatedAt": "2025-07-03T07:47:31.218Z"
+  },
+  {
+    "id": "17515292755485v13hh3t1",
+    "auftrag": {
+      "sachbearbeiter": "Max Mustermann",
+      "filiale": "Hauptsitz",
+      "hatVorsorge": false,
+      "bestattungsart": ""
+    },
+    "verstorbener": {
+      "staatsangehoerigkeit": "deutsch"
+    },
+    "auftraggeber": {
+      "staatsangehoerigkeit": "deutsch"
+    },
+    "ehepartner": {},
+    "angehoerige": {
+      "angehoerige": [],
+      "kinderVorhanden": false
+    },
+    "bestattung": {
+      "bestattungsart": "",
+      "mitFeier": true
+    },
+    "posten": [],
+    "fallNummer": "SF-2025-2384",
+    "status": "ERFASSUNG",
+    "createdAt": "2025-07-03T07:54:35.548Z",
+    "updatedAt": "2025-07-03T07:54:35.548Z"
+  },
+  {
+    "id": "1751529514032cxdrfgyrt",
+    "auftrag": {
+      "sachbearbeiter": "Max Mustermann",
+      "filiale": "Hauptsitz",
+      "hatVorsorge": false,
+      "bestattungsart": ""
+    },
+    "verstorbener": {
+      "staatsangehoerigkeit": "deutsch"
+    },
+    "auftraggeber": {
+      "staatsangehoerigkeit": "deutsch"
+    },
+    "ehepartner": {},
+    "angehoerige": {
+      "angehoerige": [],
+      "kinderVorhanden": false
+    },
+    "bestattung": {
+      "bestattungsart": "",
+      "mitFeier": true
+    },
+    "posten": [],
+    "fallNummer": "SF-2025-6061",
+    "status": "ERFASSUNG",
+    "createdAt": "2025-07-03T07:58:34.032Z",
+    "updatedAt": "2025-07-03T07:58:34.032Z"
+  },
+  {
+    "id": "1751529522843sonb3wgvu",
+    "auftrag": {
+      "sachbearbeiter": "Max Mustermann",
+      "filiale": "Hauptsitz",
+      "hatVorsorge": false,
+      "bestattungsart": ""
+    },
+    "verstorbener": {
+      "staatsangehoerigkeit": "deutsch"
+    },
+    "auftraggeber": {
+      "staatsangehoerigkeit": "deutsch"
+    },
+    "ehepartner": {},
+    "angehoerige": {
+      "angehoerige": [],
+      "kinderVorhanden": false
+    },
+    "bestattung": {
+      "bestattungsart": "",
+      "mitFeier": true
+    },
+    "posten": [],
+    "fallNummer": "SF-2025-7511",
+    "status": "ERFASSUNG",
+    "createdAt": "2025-07-03T07:58:42.843Z",
+    "updatedAt": "2025-07-03T07:58:42.843Z"
   }
 ]

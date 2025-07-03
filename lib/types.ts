@@ -168,6 +168,7 @@ export enum UserRole {
 }
 
 export enum SterbefallStatus {
+  ENTWURF = 'ENTWURF',
   ERFASSUNG = 'ERFASSUNG',
   BEARBEITUNG = 'BEARBEITUNG',
   BEHOERDEN = 'BEHOERDEN',

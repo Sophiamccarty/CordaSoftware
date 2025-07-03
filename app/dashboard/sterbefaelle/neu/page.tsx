@@ -39,9 +39,12 @@ import {
   Filter,
   GripVertical,
   ChevronRight,
-  FolderOpen
+  FolderOpen,
+  PlayCircle,
+  Eye
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { SterbefallVorschau } from '@/components/sterbefall-vorschau'
 import {
   DndContext,
   closestCenter,
@@ -449,6 +452,9 @@ export default function NeuerSterbefallPage() {
   const [activeTab, setActiveTab] = useState('auftrag')
   const [loading, setLoading] = useState(false)
   const [autoSaving, setAutoSaving] = useState(false)
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [confirmAction, setConfirmAction] = useState<'create' | null>(null)
+  const [showVorschau, setShowVorschau] = useState(false)
   
   // Form Data States
   const [auftragData, setAuftragData] = useState<AuftragData>({
@@ -715,9 +721,57 @@ export default function NeuerSterbefallPage() {
     setPostenData(templatePosten)
   }
 
-  // Save Sterbefall
-  const handleSave = async () => {
+  // Save as Draft
+  const handleSaveAsDraft = async () => {
     setLoading(true)
+    
+    try {
+      const sterbefallData = {
+        auftrag: auftragData,
+        verstorbener: verstorbenerData,
+        auftraggeber: auftraggeberData,
+        ehepartner: ehepartnerData,
+        angehoerige: angehoerigeData,
+        bestattung: bestattungData,
+        posten: postenData,
+        fallNummer: `SF-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
+        status: 'ENTWURF'
+      }
+      
+      const response = await fetch('/api/sterbefaelle', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(sterbefallData)
+      })
+      
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to save Sterbefall')
+      }
+      
+      const result = await response.json()
+      console.log('Sterbefall draft saved successfully:', result)
+      
+      // Show success message
+      alert('Entwurf wurde erfolgreich gespeichert!')
+    } catch (error) {
+      console.error('Error saving Sterbefall draft:', error)
+      alert('Fehler beim Speichern des Entwurfs: ' + (error as Error).message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Create Sterbefall (with preview)
+  const handleCreateSterbefall = () => {
+    setShowVorschau(true)
+  }
+
+  const confirmCreateSterbefall = async () => {
+    setLoading(true)
+    setShowVorschau(false)
     
     try {
       const sterbefallData = {
@@ -742,22 +796,24 @@ export default function NeuerSterbefallPage() {
       
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to save Sterbefall')
+        throw new Error(error.error || 'Failed to create Sterbefall')
       }
       
       const result = await response.json()
-      console.log('Sterbefall saved successfully:', result)
+      console.log('Sterbefall created successfully:', result)
       
-      // Show success message or redirect
-      router.push('/dashboard')
+      // Redirect to Sterbefall-Akte
+      router.push(`/dashboard/sterbefaelle/${result.id}`)
     } catch (error) {
-      console.error('Error saving Sterbefall:', error)
-      // Here you could show an error toast/notification
-      alert('Fehler beim Speichern des Sterbefalls: ' + (error as Error).message)
+      console.error('Error creating Sterbefall:', error)
+      alert('Fehler beim Anlegen des Sterbefalls: ' + (error as Error).message)
     } finally {
       setLoading(false)
     }
   }
+
+  // Legacy save function (keeping for compatibility)
+  const handleSave = handleSaveAsDraft
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -846,12 +902,13 @@ export default function NeuerSterbefallPage() {
                 </div>
               )}
               
+              {/* Speichern als Entwurf Button */}
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={handleSave}
+                onClick={handleSaveAsDraft}
                 disabled={loading}
-                className="bg-gradient-to-r from-corda-gold to-yellow-500 text-black font-semibold px-6 py-3 rounded-xl shadow-lg shadow-corda-gold/25 hover:shadow-corda-gold/40 transition-all duration-300 flex items-center space-x-2 disabled:opacity-50"
+                className="bg-gradient-to-r from-slate-600 to-slate-700 text-white font-semibold px-6 py-3 rounded-xl shadow-lg hover:shadow-slate-500/25 transition-all duration-300 flex items-center space-x-2 disabled:opacity-50"
               >
                 {loading ? (
                   <>
@@ -861,7 +918,28 @@ export default function NeuerSterbefallPage() {
                 ) : (
                   <>
                     <Save className="w-5 h-5" />
-                    <span>Speichern</span>
+                    <span>Als Entwurf speichern</span>
+                  </>
+                )}
+              </motion.button>
+              
+              {/* Sterbefall anlegen Button */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleCreateSterbefall}
+                disabled={loading}
+                className="bg-gradient-to-r from-corda-gold to-yellow-500 text-black font-semibold px-6 py-3 rounded-xl shadow-lg shadow-corda-gold/25 hover:shadow-corda-gold/40 transition-all duration-300 flex items-center space-x-2 disabled:opacity-50"
+              >
+                {loading ? (
+                  <>
+                    <Clock className="w-5 h-5 animate-spin" />
+                    <span>Legt an...</span>
+                  </>
+                ) : (
+                  <>
+                    <PlayCircle className="w-5 h-5" />
+                    <span>Sterbefall anlegen</span>
                   </>
                 )}
               </motion.button>
@@ -957,6 +1035,74 @@ export default function NeuerSterbefallPage() {
           </div>
         </div>
       </div>
+      
+      {/* Bestätigung für Sterbefall anlegen */}
+      {showConfirmDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-2xl shadow-2xl shadow-corda-gold/10 p-8 max-w-md w-full mx-4"
+          >
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-12 h-12 bg-corda-gold/20 rounded-full flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-corda-gold" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white">Sterbefall anlegen</h3>
+                <p className="text-gray-400 text-sm">Bestätigen Sie diese Aktion</p>
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-gray-300 leading-relaxed">
+                Sind Sie sicher, dass Sie diesen Sterbefall anlegen möchten? 
+                Nach dem Anlegen wird der Sterbefall offiziell erfasst und eine 
+                Sterbefall-Akte wird erstellt.
+              </p>
+            </div>
+            
+            <div className="flex items-center justify-end space-x-3">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowConfirmDialog(false)}
+                className="px-6 py-3 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-colors duration-200"
+              >
+                Abbrechen
+              </motion.button>
+              
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={confirmCreateSterbefall}
+                className="px-6 py-3 bg-gradient-to-r from-corda-gold to-yellow-500 text-black font-semibold rounded-xl shadow-lg hover:shadow-corda-gold/25 transition-all duration-200"
+              >
+                Sterbefall anlegen
+              </motion.button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+      
+      {/* Sterbefall Vorschau */}
+      <SterbefallVorschau
+        data={{
+          auftrag: auftragData,
+          verstorbener: verstorbenerData,
+          auftraggeber: auftraggeberData,
+          ehepartner: ehepartnerData,
+          angehoerige: angehoerigeData,
+          bestattung: bestattungData,
+          posten: postenData,
+          fallNummer: `SF-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
+          status: 'ERFASSUNG'
+        }}
+        isOpen={showVorschau}
+        onClose={() => setShowVorschau(false)}
+        onConfirm={confirmCreateSterbefall}
+      />
     </div>
   )
 }
