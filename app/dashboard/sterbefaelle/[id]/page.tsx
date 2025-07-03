@@ -32,8 +32,19 @@ import {
   Trash2,
   UserPlus,
   Plus,
-  Save
+  Save,
+  Copy,
+  DollarSign,
+  Calculator,
+  Receipt,
+  Banknote,
+  TrendingUp,
+  Target,
+  BarChart,
+  PieChart,
+  UserCheck
 } from 'lucide-react'
+import { SterbefallExtendedTabs } from '@/components/sterbefall-extended-tabs'
 
 // Import the Sterbefall interfaces
 interface SterbefallData {
@@ -105,6 +116,42 @@ const tabs = [
     label: 'Notizen',
     icon: Edit,
     color: 'from-yellow-500 to-yellow-600'
+  },
+  {
+    id: 'behoerden',
+    label: 'Behörden',
+    icon: Building,
+    color: 'from-blue-500 to-blue-600'
+  },
+  {
+    id: 'workflow',
+    label: 'Workflow',
+    icon: CheckCircle,
+    color: 'from-green-500 to-green-600'
+  },
+  {
+    id: 'finanzen',
+    label: 'Finanzen',
+    icon: CreditCard,
+    color: 'from-red-500 to-red-600'
+  },
+  {
+    id: 'trauerfeier',
+    label: 'Trauerfeier',
+    icon: Church,
+    color: 'from-purple-500 to-purple-600'
+  },
+  {
+    id: 'friedhof',
+    label: 'Friedhof',
+    icon: MapPin,
+    color: 'from-gray-500 to-gray-600'
+  },
+  {
+    id: 'versicherung',
+    label: 'Versicherung',
+    icon: UserCheck,
+    color: 'from-cyan-500 to-cyan-600'
   }
 ]
 
@@ -120,6 +167,9 @@ export default function SterbefallDetailPage() {
   const [editData, setEditData] = useState<any>({})
   const [saving, setSaving] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
+  const [showExportMenu, setShowExportMenu] = useState(false)
+  const [showShareMenu, setShowShareMenu] = useState(false)
+  const [isGlobalEditing, setIsGlobalEditing] = useState(false)
 
   // Fetch Sterbefall data
   useEffect(() => {
@@ -144,6 +194,24 @@ export default function SterbefallDetailPage() {
       fetchSterbefallData()
     }
   }, [params.id])
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!event.target) return
+      
+      const target = event.target as Element
+      if (!target.closest('.export-dropdown') && !target.closest('.share-dropdown')) {
+        setShowExportMenu(false)
+        setShowShareMenu(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   // Save changes function
   const saveChanges = async (updatedData: any) => {
@@ -172,6 +240,130 @@ export default function SterbefallDetailPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  // Export functions
+  const exportToPDF = () => {
+    setShowExportMenu(false)
+    // Implementierung für PDF-Export
+    const printWindow = window.open('', '_blank')
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Sterbefall-Akte - ${sterbefallData?.verstorbener.vornamen} ${sterbefallData?.verstorbener.nachname}</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; }
+              .header { border-bottom: 2px solid #000; margin-bottom: 20px; padding-bottom: 10px; }
+              .section { margin-bottom: 15px; }
+              .label { font-weight: bold; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>Sterbefall-Akte</h1>
+              <p>Fall-Nr: ${sterbefallData?.fallNummer}</p>
+            </div>
+            <div class="section">
+              <h2>Verstorbener</h2>
+              <p><span class="label">Name:</span> ${sterbefallData?.verstorbener.anrede} ${sterbefallData?.verstorbener.vornamen} ${sterbefallData?.verstorbener.nachname}</p>
+              <p><span class="label">Geburtsdatum:</span> ${sterbefallData?.verstorbener.geburtsdatum ? new Date(sterbefallData.verstorbener.geburtsdatum).toLocaleDateString('de-DE') : '-'}</p>
+              <p><span class="label">Verstorben am:</span> ${sterbefallData?.verstorbener.verstorbenAm ? new Date(sterbefallData.verstorbener.verstorbenAm).toLocaleDateString('de-DE') : '-'}</p>
+            </div>
+            <div class="section">
+              <h2>Auftraggeber</h2>
+              <p><span class="label">Name:</span> ${sterbefallData?.auftraggeber.anrede} ${sterbefallData?.auftraggeber.vornamen} ${sterbefallData?.auftraggeber.nachname}</p>
+              <p><span class="label">Telefon:</span> ${sterbefallData?.auftraggeber.telefon || '-'}</p>
+            </div>
+            <div class="section">
+              <h2>Bestattung</h2>
+              <p><span class="label">Art:</span> ${sterbefallData?.bestattung.bestattungsart || '-'}</p>
+              <p><span class="label">Datum:</span> ${sterbefallData?.bestattung.datum ? new Date(sterbefallData.bestattung.datum).toLocaleDateString('de-DE') : '-'}</p>
+            </div>
+          </body>
+        </html>
+      `)
+      printWindow.document.close()
+      printWindow.print()
+    }
+    setSuccessMessage('PDF wird generiert...')
+    setTimeout(() => setSuccessMessage(''), 3000)
+  }
+
+  const exportToExcel = () => {
+    setShowExportMenu(false)
+    // Implementierung für Excel-Export
+    const csvContent = [
+      ['Feld', 'Wert'],
+      ['Fall-Nummer', sterbefallData?.fallNummer],
+      ['Verstorbener', `${sterbefallData?.verstorbener.anrede} ${sterbefallData?.verstorbener.vornamen} ${sterbefallData?.verstorbener.nachname}`],
+      ['Geburtsdatum', sterbefallData?.verstorbener.geburtsdatum ? new Date(sterbefallData.verstorbener.geburtsdatum).toLocaleDateString('de-DE') : '-'],
+      ['Verstorben am', sterbefallData?.verstorbener.verstorbenAm ? new Date(sterbefallData.verstorbener.verstorbenAm).toLocaleDateString('de-DE') : '-'],
+      ['Auftraggeber', `${sterbefallData?.auftraggeber.anrede} ${sterbefallData?.auftraggeber.vornamen} ${sterbefallData?.auftraggeber.nachname}`],
+      ['Bestattungsart', sterbefallData?.bestattung.bestattungsart || '-'],
+      ['Status', sterbefallData?.status]
+    ].map(row => row.join(',')).join('\n')
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `Sterbefall_${sterbefallData?.fallNummer}.csv`
+    link.click()
+    
+    setSuccessMessage('Excel-Datei wurde heruntergeladen!')
+    setTimeout(() => setSuccessMessage(''), 3000)
+  }
+
+  // Share functions
+  const shareViaEmail = () => {
+    setShowShareMenu(false)
+    const subject = `Sterbefall-Akte: ${sterbefallData?.verstorbener.vornamen} ${sterbefallData?.verstorbener.nachname}`
+    const body = `Anbei die Informationen zur Sterbefall-Akte:\n\nFall-Nr: ${sterbefallData?.fallNummer}\nVerstorbener: ${sterbefallData?.verstorbener.anrede} ${sterbefallData?.verstorbener.vornamen} ${sterbefallData?.verstorbener.nachname}\nStatus: ${sterbefallData?.status}`
+    
+    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  }
+
+  const copyToClipboard = async () => {
+    setShowShareMenu(false)
+    const text = `Sterbefall-Akte\nFall-Nr: ${sterbefallData?.fallNummer}\nVerstorbener: ${sterbefallData?.verstorbener.anrede} ${sterbefallData?.verstorbener.vornamen} ${sterbefallData?.verstorbener.nachname}\nStatus: ${sterbefallData?.status}`
+    
+    try {
+      await navigator.clipboard.writeText(text)
+      setSuccessMessage('Link in Zwischenablage kopiert!')
+      setTimeout(() => setSuccessMessage(''), 3000)
+    } catch (err) {
+      console.error('Failed to copy: ', err)
+    }
+  }
+
+  const shareViaLink = () => {
+    setShowShareMenu(false)
+    const url = window.location.href
+    
+    if (navigator.share) {
+      navigator.share({
+        title: `Sterbefall-Akte: ${sterbefallData?.verstorbener.vornamen} ${sterbefallData?.verstorbener.nachname}`,
+        text: `Fall-Nr: ${sterbefallData?.fallNummer}`,
+        url: url
+      })
+    } else {
+      // Fallback: Copy URL to clipboard
+      navigator.clipboard.writeText(url)
+      setSuccessMessage('Link in Zwischenablage kopiert!')
+      setTimeout(() => setSuccessMessage(''), 3000)
+    }
+  }
+
+  // Global edit mode
+  const toggleGlobalEdit = () => {
+    setIsGlobalEditing(!isGlobalEditing)
+    setIsEditing(!isGlobalEditing)
+    if (isGlobalEditing) {
+      setSuccessMessage('Bearbeiten-Modus beendet')
+    } else {
+      setSuccessMessage('Bearbeiten-Modus aktiviert')
+    }
+    setTimeout(() => setSuccessMessage(''), 3000)
   }
 
   const getStatusColor = (status: string) => {
@@ -1599,6 +1791,383 @@ export default function SterbefallDetailPage() {
           </div>
         )
       
+      case 'behoerden':
+        return (
+          <div className="space-y-6">
+            <div className="glass-morphism rounded-2xl p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center">
+                    <Building className="w-6 h-6 text-blue-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-white">Behörden</h2>
+                    <p className="text-gray-400">Meldungen und Formalitäten</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Standesamt */}
+                <div className="bg-gray-700/30 rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-white flex items-center">
+                      <Building className="w-5 h-5 mr-2 text-blue-400" />
+                      Standesamt
+                    </h3>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <span className="text-green-300 text-sm">Erledigt</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Angemeldet am:</span>
+                      <span className="text-white">05.07.2025</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Sachbearbeiter:</span>
+                      <span className="text-white">Fr. Müller</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Aktenzeichen:</span>
+                      <span className="text-white">ST-2025-0142</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Sterbeurkunde:</span>
+                      <span className="text-green-300">Erhalten</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 pt-4 border-t border-gray-600">
+                    <button className="w-full bg-blue-500/20 text-blue-300 py-2 rounded-lg hover:bg-blue-500/30 transition-colors">
+                      Dokumente anzeigen
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Friedhofsamt */}
+                <div className="bg-gray-700/30 rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-white flex items-center">
+                      <MapPin className="w-5 h-5 mr-2 text-green-400" />
+                      Friedhofsamt
+                    </h3>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                      <span className="text-yellow-300 text-sm">In Bearbeitung</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Angemeldet am:</span>
+                      <span className="text-white">06.07.2025</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Friedhof:</span>
+                      <span className="text-white">Hauptfriedhof München</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Grabstelle:</span>
+                      <span className="text-white">Abt. 12, Reihe 8, Nr. 15</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Genehmigung:</span>
+                      <span className="text-yellow-300">Ausstehend</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 pt-4 border-t border-gray-600">
+                    <button className="w-full bg-yellow-500/20 text-yellow-300 py-2 rounded-lg hover:bg-yellow-500/30 transition-colors">
+                      Status verfolgen
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Krankenkasse */}
+                <div className="bg-gray-700/30 rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-white flex items-center">
+                      <CreditCard className="w-5 h-5 mr-2 text-red-400" />
+                      Krankenkasse
+                    </h3>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                      <span className="text-red-300 text-sm">Offen</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Kasse:</span>
+                      <span className="text-white">AOK Bayern</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Versicherten-Nr:</span>
+                      <span className="text-white">A123456789</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Informiert:</span>
+                      <span className="text-red-300">Nein</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Frist:</span>
+                      <span className="text-red-300">10.07.2025</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 pt-4 border-t border-gray-600">
+                    <button className="w-full bg-red-500/20 text-red-300 py-2 rounded-lg hover:bg-red-500/30 transition-colors">
+                      Jetzt informieren
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Rentenversicherung */}
+                <div className="bg-gray-700/30 rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-white flex items-center">
+                      <Archive className="w-5 h-5 mr-2 text-purple-400" />
+                      Rentenversicherung
+                    </h3>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+                      <span className="text-gray-300 text-sm">Nicht relevant</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Träger:</span>
+                      <span className="text-white">DRV Bund</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Rentner:</span>
+                      <span className="text-white">Ja</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Informiert:</span>
+                      <span className="text-green-300">Ja</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Datum:</span>
+                      <span className="text-white">04.07.2025</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 pt-4 border-t border-gray-600">
+                    <button className="w-full bg-gray-500/20 text-gray-300 py-2 rounded-lg hover:bg-gray-500/30 transition-colors">
+                      Details anzeigen
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Checkliste */}
+              <div className="mt-6 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-xl p-6 border border-blue-500/20">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                  <CheckCircle className="w-5 h-5 mr-2 text-blue-400" />
+                  Behörden-Checkliste
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[
+                    { task: 'Totenschein beim Arzt besorgen', done: true, priority: 'high' },
+                    { task: 'Sterbefall beim Standesamt anmelden', done: true, priority: 'high' },
+                    { task: 'Sterbeurkunden beantragen (5x)', done: true, priority: 'high' },
+                    { task: 'Bestattung beim Friedhofsamt anmelden', done: false, priority: 'high' },
+                    { task: 'Krankenkasse informieren', done: false, priority: 'medium' },
+                    { task: 'Rentenversicherung benachrichtigen', done: true, priority: 'medium' },
+                    { task: 'Versicherungen kontaktieren', done: false, priority: 'low' },
+                    { task: 'Bank über Todesfall informieren', done: false, priority: 'medium' }
+                  ].map((item, index) => (
+                    <div key={index} className={`flex items-center space-x-3 p-3 rounded-lg ${
+                      item.done ? 'bg-green-500/10' : 'bg-gray-700/30'
+                    }`}>
+                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                        item.done ? 'bg-green-500 border-green-500' : 'border-gray-500'
+                      }`}>
+                        {item.done && <CheckCircle className="w-3 h-3 text-white" />}
+                      </div>
+                      <span className={`flex-1 text-sm ${item.done ? 'text-green-300 line-through' : 'text-white'}`}>
+                        {item.task}
+                      </span>
+                      <div className={`w-2 h-2 rounded-full ${
+                        item.priority === 'high' ? 'bg-red-500' : 
+                        item.priority === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
+                      }`}></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      
+      case 'workflow':
+        return (
+          <div className="space-y-6">
+            <div className="glass-morphism rounded-2xl p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
+                    <CheckCircle className="w-6 h-6 text-green-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-white">Workflow</h2>
+                    <p className="text-gray-400">Aufgaben und Checklisten</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-3">
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-corda-gold">67%</p>
+                    <p className="text-sm text-gray-400">Abgeschlossen</p>
+                  </div>
+                  <button className="px-4 py-2 bg-corda-gold text-black rounded-xl hover:bg-yellow-400 transition-colors flex items-center space-x-2">
+                    <Plus className="w-4 h-4" />
+                    <span>Aufgabe hinzufügen</span>
+                  </button>
+                </div>
+              </div>
+              
+              {/* Status Timeline */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-white mb-4">Bearbeitungsstatus</h3>
+                <div className="flex items-center justify-between relative">
+                  {[
+                    { label: 'Erfassung', status: 'completed', icon: FileText },
+                    { label: 'Behörden', status: 'current', icon: Building },
+                    { label: 'Planung', status: 'pending', icon: Calendar },
+                    { label: 'Durchführung', status: 'pending', icon: Church },
+                    { label: 'Abschluss', status: 'pending', icon: CheckCircle }
+                  ].map((step, index) => {
+                    const Icon = step.icon
+                    return (
+                      <div key={index} className="flex flex-col items-center relative">
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center border-2 ${
+                          step.status === 'completed' ? 'bg-green-500 border-green-500' :
+                          step.status === 'current' ? 'bg-corda-gold border-corda-gold' :
+                          'bg-gray-700 border-gray-600'
+                        }`}>
+                          <Icon className={`w-6 h-6 ${
+                            step.status === 'completed' || step.status === 'current' ? 'text-black' : 'text-gray-400'
+                          }`} />
+                        </div>
+                        <span className={`mt-2 text-sm ${
+                          step.status === 'completed' ? 'text-green-300' :
+                          step.status === 'current' ? 'text-corda-gold' :
+                          'text-gray-400'
+                        }`}>
+                          {step.label}
+                        </span>
+                        {index < 4 && (
+                          <div className={`absolute top-6 left-12 w-20 h-0.5 ${
+                            step.status === 'completed' ? 'bg-green-500' : 'bg-gray-600'
+                          }`}></div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+              
+              {/* Aufgabenlisten */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Dringende Aufgaben */}
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-red-300 mb-4 flex items-center">
+                    <AlertCircle className="w-5 h-5 mr-2" />
+                    Dringende Aufgaben
+                  </h3>
+                  
+                  <div className="space-y-3">
+                    {[
+                      { task: 'Friedhofsgenehmigung einholen', deadline: '08.07.2025', priority: 'high' },
+                      { task: 'Krankenkasse informieren', deadline: '10.07.2025', priority: 'high' },
+                      { task: 'Trauerfeier planen', deadline: '12.07.2025', priority: 'medium' }
+                    ].map((item, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <input type="checkbox" className="w-4 h-4" />
+                          <div>
+                            <p className="text-white font-medium">{item.task}</p>
+                            <p className="text-red-300 text-sm">Frist: {item.deadline}</p>
+                          </div>
+                        </div>
+                        <div className={`w-3 h-3 rounded-full ${
+                          item.priority === 'high' ? 'bg-red-500' : 'bg-yellow-500'
+                        }`}></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Heute fällig */}
+                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-yellow-300 mb-4 flex items-center">
+                    <Clock className="w-5 h-5 mr-2" />
+                    Heute fällig
+                  </h3>
+                  
+                  <div className="space-y-3">
+                    {[
+                      { task: 'Familie über Friedhofstermin informieren', time: '14:00' },
+                      { task: 'Blumenschmuck bestellen', time: '16:00' },
+                      { task: 'Trauerredner kontaktieren', time: '17:00' }
+                    ].map((item, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <input type="checkbox" className="w-4 h-4" />
+                          <div>
+                            <p className="text-white font-medium">{item.task}</p>
+                            <p className="text-yellow-300 text-sm">bis {item.time}</p>
+                          </div>
+                        </div>
+                        <Clock className="w-4 h-4 text-yellow-400" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Fortschritts-Dashboard */}
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+                {[
+                  { label: 'Gesamt Aufgaben', value: '24', color: 'blue' },
+                  { label: 'Erledigt', value: '16', color: 'green' },
+                  { label: 'In Bearbeitung', value: '5', color: 'yellow' },
+                  { label: 'Überfällig', value: '3', color: 'red' }
+                ].map((stat, index) => (
+                  <div key={index} className={`bg-${stat.color}-500/10 border border-${stat.color}-500/30 rounded-xl p-4 text-center`}>
+                    <p className={`text-2xl font-bold text-${stat.color}-300`}>{stat.value}</p>
+                    <p className="text-gray-400 text-sm">{stat.label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )
+
+      case 'finanzen':
+      case 'trauerfeier':
+      case 'friedhof':
+      case 'behoerden':
+      case 'workflow':
+      case 'dokumente':
+      case 'notizen':
+      case 'versicherung':
+        return (
+          <SterbefallExtendedTabs 
+            activeTab={activeTab}
+            sterbefallData={sterbefallData}
+            isEditing={isEditing}
+            setIsEditing={setIsEditing}
+          />
+        )
+      
       default:
         return (
           <div className="glass-morphism rounded-2xl p-8 text-center">
@@ -1681,19 +2250,88 @@ export default function SterbefallDetailPage() {
             </div>
             
             <div className="flex items-center space-x-3">
-              <button className="px-4 py-2 bg-gray-700 text-white rounded-xl hover:bg-gray-600 transition-colors flex items-center space-x-2">
-                <Download className="w-4 h-4" />
-                <span>Export</span>
-              </button>
+              {/* Export Dropdown */}
+              <div className="relative export-dropdown">
+                <button 
+                  onClick={() => setShowExportMenu(!showExportMenu)}
+                  className="px-4 py-2 bg-gray-700 text-white rounded-xl hover:bg-gray-600 transition-colors flex items-center space-x-2"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Export</span>
+                </button>
+                
+                {showExportMenu && (
+                  <div className="absolute top-full mt-2 right-0 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 min-w-[200px]">
+                    <div className="p-2">
+                      <button
+                        onClick={exportToPDF}
+                        className="w-full text-left px-4 py-3 text-white hover:bg-slate-700 rounded-lg transition-colors flex items-center space-x-3"
+                      >
+                        <FileText className="w-4 h-4" />
+                        <span>Als PDF exportieren</span>
+                      </button>
+                      <button
+                        onClick={exportToExcel}
+                        className="w-full text-left px-4 py-3 text-white hover:bg-slate-700 rounded-lg transition-colors flex items-center space-x-3"
+                      >
+                        <Archive className="w-4 h-4" />
+                        <span>Als Excel exportieren</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
               
-              <button className="px-4 py-2 bg-gray-700 text-white rounded-xl hover:bg-gray-600 transition-colors flex items-center space-x-2">
-                <Share className="w-4 h-4" />
-                <span>Teilen</span>
-              </button>
+              {/* Share Dropdown */}
+              <div className="relative share-dropdown">
+                <button 
+                  onClick={() => setShowShareMenu(!showShareMenu)}
+                  className="px-4 py-2 bg-gray-700 text-white rounded-xl hover:bg-gray-600 transition-colors flex items-center space-x-2"
+                >
+                  <Share className="w-4 h-4" />
+                  <span>Teilen</span>
+                </button>
+                
+                {showShareMenu && (
+                  <div className="absolute top-full mt-2 right-0 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 min-w-[200px]">
+                    <div className="p-2">
+                      <button
+                        onClick={shareViaEmail}
+                        className="w-full text-left px-4 py-3 text-white hover:bg-slate-700 rounded-lg transition-colors flex items-center space-x-3"
+                      >
+                        <Mail className="w-4 h-4" />
+                        <span>Per E-Mail teilen</span>
+                      </button>
+                      <button
+                        onClick={copyToClipboard}
+                        className="w-full text-left px-4 py-3 text-white hover:bg-slate-700 rounded-lg transition-colors flex items-center space-x-3"
+                      >
+                        <Copy className="w-4 h-4" />
+                        <span>Link kopieren</span>
+                      </button>
+                      <button
+                        onClick={shareViaLink}
+                        className="w-full text-left px-4 py-3 text-white hover:bg-slate-700 rounded-lg transition-colors flex items-center space-x-3"
+                      >
+                        <Share className="w-4 h-4" />
+                        <span>Über System teilen</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
               
-              <button className="px-4 py-2 bg-corda-gold text-black rounded-xl hover:bg-yellow-400 transition-colors flex items-center space-x-2">
+              {/* Global Edit Toggle */}
+              <button 
+                onClick={toggleGlobalEdit}
+                className={`px-4 py-2 rounded-xl transition-colors flex items-center space-x-2 ${
+                  isGlobalEditing 
+                    ? 'bg-red-600 text-white hover:bg-red-700' 
+                    : 'bg-corda-gold text-black hover:bg-yellow-400'
+                }`}
+              >
                 <Edit className="w-4 h-4" />
-                <span>Bearbeiten</span>
+                <span>{isGlobalEditing ? 'Beenden' : 'Bearbeiten'}</span>
               </button>
             </div>
           </div>
