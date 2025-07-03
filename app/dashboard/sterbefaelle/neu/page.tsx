@@ -37,7 +37,9 @@ import {
   Check,
   Settings,
   Filter,
-  GripVertical
+  GripVertical,
+  ChevronRight,
+  FolderOpen
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import {
@@ -142,8 +144,15 @@ interface AuftragData {
 
 interface BestattungData {
   bestattungsart: string
+  // Krematorium
   krematorium?: string
+  krematoriumAdresse?: string
+  krematoriumPlaceId?: string
+  krematoriumGeometry?: any
   friedhofMeer?: string
+  friedhofMeerAdresse?: string // Zusätzliche Adressinfo vom Friedhof
+  friedhofMeerPlaceId?: string // Google Place ID für weitere Abfragen
+  friedhofMeerGeometry?: any // Geokoordinaten des Friedhofs
   mitFeier: boolean
   // Neue Felder für spezifische Trauerfeier-Arten bei Feuerbestattung
   mitSargfeier?: boolean
@@ -247,6 +256,38 @@ interface AngehoerigeData {
   kinderVorhanden: boolean
   anzahlKinder?: number
   anzahlMinderjaehrigeKinder?: number
+}
+
+interface BestattungsVorlageData {
+  id: string
+  name: string
+  beschreibung?: string
+  bestattungsart: string
+  krematorium?: string
+  krematoriumAdresse?: string
+  friedhofMeer?: string
+  friedhofMeerAdresse?: string
+  mitFeier: boolean
+  mitSargfeier?: boolean
+  mitUrnenfeier?: boolean
+  grabart?: string
+  abteilung?: string
+  reihe?: string
+  bemerkungen?: string
+  istSystemvorlage: boolean
+  erstelltVon?: string
+  erstelltAm?: string
+}
+
+interface AktenEintragData {
+  id: string
+  typ: 'verstorbener' | 'vorsorge' | 'anfrage'
+  name: string
+  verstorbenAm?: string
+  bestattungsdaten: BestattungData
+  verstorbenerDaten: PersonData
+  auftraggeberDaten: PersonData
+  ehepartnerDaten?: PersonData
 }
 
 const TABS = [
@@ -1386,6 +1427,306 @@ function AuftragTab({
   )
 }
 
+// Einheitliche Akte-Modal Komponente
+function AktenModal({
+  isOpen,
+  onClose,
+  onLoadAktenDaten,
+  defaultPersonType,
+  title,
+  searchPlaceholder = "Nach Akte suchen..."
+}: {
+  isOpen: boolean
+  onClose: () => void
+  onLoadAktenDaten: (aktenEintrag: AktenEintragData, personType: 'verstorbener' | 'auftraggeber' | 'ehepartner') => void
+  defaultPersonType: 'verstorbener' | 'auftraggeber' | 'ehepartner'
+  title: string
+  searchPlaceholder?: string
+}) {
+  const [aktenSuchterm, setAktenSuchterm] = useState('')
+  const [selectedPersonType, setSelectedPersonType] = useState<'verstorbener' | 'auftraggeber' | 'ehepartner'>(defaultPersonType)
+  
+  // Beispiel-Aktendaten (später aus API)
+  const [aktenEintraege] = useState<AktenEintragData[]>([
+    {
+      id: '1',
+      typ: 'verstorbener',
+      name: 'Max Mustermann',
+      verstorbenAm: '2024-01-15',
+      bestattungsdaten: {
+        bestattungsart: 'Erdbestattung',
+        friedhofMeer: 'Hauptfriedhof Musterstadt',
+        mitFeier: true
+      },
+      verstorbenerDaten: {
+        anrede: 'Herr',
+        vornamen: 'Max',
+        nachname: 'Mustermann',
+        geburtsdatum: '1950-05-15',
+        verstorbenAm: '2024-01-15',
+        strasse: 'Musterstraße',
+        hausnummer: '123',
+        plz: '12345',
+        ort: 'Musterstadt',
+        staatsangehoerigkeit: 'deutsch',
+        familienstand: 'verheiratet',
+        konfession: 'evangelisch'
+      },
+      auftraggeberDaten: {
+        anrede: 'Frau',
+        vornamen: 'Maria',
+        nachname: 'Mustermann',
+        geburtsdatum: '1955-08-20',
+        strasse: 'Musterstraße',
+        hausnummer: '123',
+        plz: '12345',
+        ort: 'Musterstadt',
+        telefon: '0123 456789',
+        email: 'maria.mustermann@email.de',
+        staatsangehoerigkeit: 'deutsch',
+        familienstand: 'verwitwet',
+        konfession: 'evangelisch',
+        beziehung: 'Ehepartner/in'
+      },
+      ehepartnerDaten: {
+        anrede: 'Frau',
+        vornamen: 'Maria',
+        nachname: 'Mustermann',
+        geburtsdatum: '1955-08-20',
+        strasse: 'Musterstraße',
+        hausnummer: '123',
+        plz: '12345',
+        ort: 'Musterstadt',
+        staatsangehoerigkeit: 'deutsch',
+        familienstand: 'verwitwet',
+        konfession: 'evangelisch'
+      }
+    },
+    {
+      id: '2',
+      typ: 'verstorbener',
+      name: 'Anna Schmidt',
+      verstorbenAm: '2024-02-20',
+      bestattungsdaten: {
+        bestattungsart: 'Feuerbestattung',
+        mitFeier: true
+      },
+      verstorbenerDaten: {
+        anrede: 'Frau',
+        vornamen: 'Anna',
+        nachname: 'Schmidt',
+        geburtsdatum: '1940-12-03',
+        verstorbenAm: '2024-02-20',
+        strasse: 'Gartenweg',
+        hausnummer: '45',
+        plz: '31134',
+        ort: 'Hildesheim',
+        staatsangehoerigkeit: 'deutsch',
+        familienstand: 'ledig',
+        konfession: 'katholisch'
+      },
+      auftraggeberDaten: {
+        anrede: 'Herr',
+        vornamen: 'Peter',
+        nachname: 'Schmidt',
+        geburtsdatum: '1965-03-12',
+        strasse: 'Neue Straße',
+        hausnummer: '78',
+        plz: '31134',
+        ort: 'Hildesheim',
+        telefon: '05121 987654',
+        email: 'peter.schmidt@email.de',
+        staatsangehoerigkeit: 'deutsch',
+        familienstand: 'verheiratet',
+        konfession: 'katholisch',
+        beziehung: 'Kind'
+      }
+    },
+    {
+      id: '3',
+      typ: 'vorsorge',
+      name: 'Klaus Weber',
+      bestattungsdaten: {
+        bestattungsart: 'Seebestattung',
+        mitFeier: false
+      },
+      verstorbenerDaten: {
+        anrede: 'Herr',
+        vornamen: 'Klaus',
+        nachname: 'Weber',
+        geburtsdatum: '1960-07-30',
+        strasse: 'Seestraße',
+        hausnummer: '12',
+        plz: '31135',
+        ort: 'Hildesheim',
+        staatsangehoerigkeit: 'deutsch',
+        familienstand: 'geschieden',
+        konfession: 'konfessionslos'
+      },
+      auftraggeberDaten: {
+        anrede: 'Herr',
+        vornamen: 'Klaus',
+        nachname: 'Weber',
+        geburtsdatum: '1960-07-30',
+        strasse: 'Seestraße',
+        hausnummer: '12',
+        plz: '31135',
+        ort: 'Hildesheim',
+        telefon: '05121 555666',
+        email: 'klaus.weber@email.de',
+        staatsangehoerigkeit: 'deutsch',
+        familienstand: 'geschieden',
+        konfession: 'konfessionslos',
+        beziehung: 'Selbst'
+      },
+      ehepartnerDaten: {
+        anrede: 'Frau',
+        vornamen: 'Sabine',
+        nachname: 'Weber',
+        geburtsdatum: '1962-11-15',
+        strasse: 'Bergstraße',
+        hausnummer: '34',
+        plz: '31135',
+        ort: 'Hildesheim',
+        staatsangehoerigkeit: 'deutsch',
+        familienstand: 'geschieden',
+        konfession: 'evangelisch'
+      }
+    }
+  ])
+
+  const gefilterteAkten = aktenEintraege.filter(eintrag =>
+    eintrag.name.toLowerCase().includes(aktenSuchterm.toLowerCase()) ||
+    eintrag.typ.toLowerCase().includes(aktenSuchterm.toLowerCase())
+  )
+
+  const handleClose = () => {
+    setAktenSuchterm('')
+    setSelectedPersonType(defaultPersonType)
+    onClose()
+  }
+
+  const handleLoadAktenDaten = (aktenEintrag: AktenEintragData, personType: 'verstorbener' | 'auftraggeber' | 'ehepartner') => {
+    onLoadAktenDaten(aktenEintrag, personType)
+    handleClose()
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-gray-800 rounded-xl p-6 max-w-5xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xl font-bold text-white">{title}</h3>
+          <button
+            onClick={handleClose}
+            className="text-gray-400 hover:text-white transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+        
+        {/* Suchfeld */}
+        <div className="mb-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder={searchPlaceholder}
+              value={aktenSuchterm}
+              onChange={(e) => setAktenSuchterm(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+        </div>
+
+        {/* Personentyp-Auswahl */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-300 mb-3">
+            Daten übernehmen von:
+          </label>
+          <div className="flex space-x-4">
+            {(['verstorbener', 'auftraggeber', 'ehepartner'] as const).map((type) => (
+              <button
+                key={type}
+                onClick={() => setSelectedPersonType(type)}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  selectedPersonType === type
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                {type === 'verstorbener' ? 'Verstorbener' : 
+                 type === 'auftraggeber' ? 'Auftraggeber' : 'Ehepartner'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Akten-Liste */}
+        <div className="space-y-3">
+          {gefilterteAkten.map((akte) => {
+            const personData = selectedPersonType === 'verstorbener' ? akte.verstorbenerDaten :
+                             selectedPersonType === 'auftraggeber' ? akte.auftraggeberDaten :
+                             akte.ehepartnerDaten
+
+            if (!personData || (selectedPersonType === 'ehepartner' && !akte.ehepartnerDaten)) {
+              return null
+            }
+
+            return (
+              <div
+                key={`${akte.id}-${selectedPersonType}`}
+                className="bg-gray-700 rounded-lg p-4 hover:bg-gray-600 transition-colors cursor-pointer border border-gray-600 hover:border-blue-500"
+                onClick={() => handleLoadAktenDaten(akte, selectedPersonType)}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-white">
+                          {akte.name}
+                        </h4>
+                        <p className="text-sm text-gray-300">
+                          {akte.typ === 'verstorbener' ? 'Sterbefall' : 
+                           akte.typ === 'vorsorge' ? 'Vorsorge' : 'Anfrage'}
+                          {akte.verstorbenAm && ` • ${new Date(akte.verstorbenAm).toLocaleDateString('de-DE')}`}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium text-white">
+                          {selectedPersonType === 'verstorbener' ? 'Verstorbener' : 
+                           selectedPersonType === 'auftraggeber' ? 'Auftraggeber' : 'Ehepartner'}:
+                        </p>
+                        <p className="text-sm text-gray-300">
+                          {personData.vornamen} {personData.nachname}
+                        </p>
+                        {personData.geburtsdatum && (
+                          <p className="text-xs text-gray-400">
+                            *{new Date(personData.geburtsdatum).toLocaleDateString('de-DE')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-gray-400 ml-4" />
+                </div>
+              </div>
+            )
+          })}
+          
+          {gefilterteAkten.length === 0 && (
+            <div className="text-center py-8 text-gray-400">
+              <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p>Keine Akten gefunden</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // Verstorbener Tab
 function VerstorbenerTab({ 
   data, 
@@ -1396,6 +1737,28 @@ function VerstorbenerTab({
   setData: (data: PersonData) => void
   onAddressLookup: (query: string, targetSetter: any) => void
 }) {
+  const [showAktenModal, setShowAktenModal] = useState(false)
+
+  const loadAktenDaten = (aktenEintrag: AktenEintragData, personType: 'verstorbener' | 'auftraggeber' | 'ehepartner') => {
+    let personData: PersonData
+    
+    switch (personType) {
+      case 'verstorbener':
+        personData = aktenEintrag.verstorbenerDaten
+        break
+      case 'auftraggeber':
+        personData = aktenEintrag.auftraggeberDaten
+        break
+      case 'ehepartner':
+        personData = aktenEintrag.ehepartnerDaten || {}
+        break
+      default:
+        return
+    }
+    
+    setData({ ...data, ...personData })
+    setShowAktenModal(false)
+  }
   const updateField = (field: keyof PersonData, value: any) => {
     const newData = { ...data, [field]: value }
     
@@ -1451,12 +1814,22 @@ function VerstorbenerTab({
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center space-x-4 mb-8">
-        <User className="w-8 h-8 text-corda-gold" />
-        <div>
-          <h2 className="text-2xl font-bold text-white">Verstorbener</h2>
-          <p className="text-gray-400">Persönliche Daten der verstorbenen Person</p>
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center space-x-4">
+          <User className="w-8 h-8 text-corda-gold" />
+          <div>
+            <h2 className="text-2xl font-bold text-white">Verstorbener</h2>
+            <p className="text-gray-400">Persönliche Daten der verstorbenen Person</p>
+          </div>
         </div>
+        
+        <button
+          onClick={() => setShowAktenModal(true)}
+          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+        >
+          <FileText className="w-4 h-4" />
+          <span>Aus Akte übernehmen</span>
+        </button>
       </div>
 
       {/* Persönliche Daten */}
@@ -2062,6 +2435,15 @@ function VerstorbenerTab({
         type="textarea"
         placeholder="Zusätzliche Informationen..."
       />
+
+      {/* Aus Akte übernehmen Modal */}
+      <AktenModal
+        isOpen={showAktenModal}
+        onClose={() => setShowAktenModal(false)}
+        onLoadAktenDaten={loadAktenDaten}
+        defaultPersonType="verstorbener"
+        title="Daten aus Akte übernehmen"
+      />
     </div>
   )
 }
@@ -2078,6 +2460,29 @@ function AuftraggeberTab({
   onCopyFromVerstorbener: () => void
   onAddressLookup: (query: string, targetSetter: any) => void
 }) {
+  const [showAktenModal, setShowAktenModal] = useState(false)
+
+  const loadAktenDaten = (aktenEintrag: AktenEintragData, personType: 'verstorbener' | 'auftraggeber' | 'ehepartner') => {
+    let personData: PersonData
+    
+    switch (personType) {
+      case 'verstorbener':
+        personData = aktenEintrag.verstorbenerDaten
+        break
+      case 'auftraggeber':
+        personData = aktenEintrag.auftraggeberDaten
+        break
+      case 'ehepartner':
+        personData = aktenEintrag.ehepartnerDaten || {}
+        break
+      default:
+        return
+    }
+    
+    setData({ ...data, ...personData })
+    setShowAktenModal(false)
+  }
+
   const updateField = (field: keyof PersonData, value: any) => {
     setData({ ...data, [field]: value })
   }
@@ -2127,15 +2532,25 @@ function AuftraggeberTab({
           </div>
         </div>
         
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={onCopyFromVerstorbener}
-          className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-        >
-          <Copy className="w-4 h-4" />
-          <span>Nachname & Adresse übernehmen</span>
-        </motion.button>
+        <div className="flex items-center space-x-3">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={onCopyFromVerstorbener}
+            className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+          >
+            <Copy className="w-4 h-4" />
+            <span>Nachname & Adresse übernehmen</span>
+          </motion.button>
+          
+          <button
+            onClick={() => setShowAktenModal(true)}
+            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          >
+            <FileText className="w-4 h-4" />
+            <span>Aus Akte übernehmen</span>
+          </button>
+        </div>
       </div>
 
       {/* Persönliche Daten */}
@@ -2431,6 +2846,15 @@ function AuftraggeberTab({
           />
         </div>
       </div>
+
+      {/* Aus Akte übernehmen Modal */}
+      <AktenModal
+        isOpen={showAktenModal}
+        onClose={() => setShowAktenModal(false)}
+        onLoadAktenDaten={loadAktenDaten}
+        defaultPersonType="auftraggeber"
+        title="Auftraggeberdaten aus Akte übernehmen"
+      />
     </div>
   )
 }
@@ -2451,9 +2875,29 @@ function EhepartnerTab({
   verstorbenerData: PersonData
   auftraggeberData: PersonData
 }) {
-  console.log('=== AngehoerigeTab rendered ===')
-  console.log('Current angehoerigeData:', data)
-  console.log('Received auftraggeberData:', auftraggeberData)
+  const [showAktenModal, setShowAktenModal] = useState(false)
+
+  const loadAktenDaten = (aktenEintrag: AktenEintragData, personType: 'verstorbener' | 'auftraggeber' | 'ehepartner') => {
+    let personData: PersonData
+    
+    switch (personType) {
+      case 'verstorbener':
+        personData = aktenEintrag.verstorbenerDaten
+        break
+      case 'auftraggeber':
+        personData = aktenEintrag.auftraggeberDaten
+        break
+      case 'ehepartner':
+        personData = aktenEintrag.ehepartnerDaten || {}
+        break
+      default:
+        return
+    }
+    
+    setData({ ...data, ...personData })
+    setShowAktenModal(false)
+  }
+
   
   const updateField = (field: keyof PersonData, value: any) => {
     const newData = { ...data, [field]: value }
@@ -2589,6 +3033,14 @@ function EhepartnerTab({
             <Copy className="w-4 h-4" />
             <span>Adresse übernehmen</span>
           </motion.button>
+          
+          <button
+            onClick={() => setShowAktenModal(true)}
+            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          >
+            <FileText className="w-4 h-4" />
+            <span>Aus Akte übernehmen</span>
+          </button>
         </div>
       </div>
 
@@ -3044,6 +3496,16 @@ function EhepartnerTab({
         type="textarea"
         placeholder="Besondere Wünsche oder Anmerkungen..."
       />
+
+      {/* Aus Akte übernehmen Modal */}
+      {/* Aus Akte übernehmen Modal */}
+      <AktenModal
+        isOpen={showAktenModal}
+        onClose={() => setShowAktenModal(false)}
+        onLoadAktenDaten={loadAktenDaten}
+        defaultPersonType="ehepartner"
+        title="Ehepartnerdaten aus Akte übernehmen"
+      />
     </div>
   )
 }
@@ -3062,6 +3524,313 @@ function BestattungTab({
   auftragData: AuftragData
   auftraggeberData: PersonData // Neu hinzugefügt
 }) {
+  const [showVorlagenModal, setShowVorlagenModal] = useState(false)
+  const [showAktenModal, setShowAktenModal] = useState(false)
+  const [showCreateVorlageModal, setShowCreateVorlageModal] = useState(false)
+  const [vorlagenSuchterm, setVorlagenSuchterm] = useState('')
+  const [aktenSuchterm, setAktenSuchterm] = useState('')
+  const [neueVorlageName, setNeueVorlageName] = useState('')
+  const [neueVorlageBeschreibung, setNeueVorlageBeschreibung] = useState('')
+  const [vorlageFelderAuswahl, setVorlageFelderAuswahl] = useState({
+    bestattungsart: true,
+    krematorium: true,
+    friedhofMeer: true,
+    mitFeier: true,
+    mitSargfeier: true,
+    mitUrnenfeier: true,
+    grabart: true,
+    abteilung: false,
+    reihe: false,
+    bemerkungen: false
+  })
+  const [bestattungsvorlagen, setBestattungsvorlagen] = useState<BestattungsVorlageData[]>([
+    {
+      id: '1',
+      name: 'Standard Erdbestattung',
+      beschreibung: 'Klassische Erdbestattung mit Trauerfeier',
+      bestattungsart: 'Erdbestattung',
+      friedhofMeer: 'Hauptfriedhof',
+      mitFeier: true,
+      grabart: 'Wahlgrab',
+      istSystemvorlage: true,
+      erstelltVon: 'System',
+      erstelltAm: '2024-01-01'
+    },
+    {
+      id: '2', 
+      name: 'Feuerbestattung mit Sarg- und Urnenfeier',
+      beschreibung: 'Feuerbestattung mit beiden Trauerfeierarten',
+      bestattungsart: 'Feuerbestattung',
+      krematorium: 'Krematorium Musterstadt',
+      friedhofMeer: 'Waldfriedhof',
+      mitFeier: true,
+      mitSargfeier: true,
+      mitUrnenfeier: true,
+      grabart: 'Urnengrab',
+      istSystemvorlage: true,
+      erstelltVon: 'System',
+      erstelltAm: '2024-01-01'
+    },
+    {
+      id: '3',
+      name: 'Meine Erdbestattung',
+      beschreibung: 'Persönliche Vorlage für Erdbestattung',
+      bestattungsart: 'Erdbestattung',
+      friedhofMeer: 'Stadtfriedhof',
+      mitFeier: true,
+      grabart: 'Reihengrab',
+      istSystemvorlage: false,
+      erstelltVon: 'Max Mustermann',
+      erstelltAm: '2024-12-01'
+    }
+  ])
+  const [aktenEintraege] = useState<AktenEintragData[]>([
+    {
+      id: '1',
+      typ: 'verstorbener',
+      name: 'Max Mustermann',
+      verstorbenAm: '2024-01-15',
+      bestattungsdaten: {
+        bestattungsart: 'Erdbestattung',
+        friedhofMeer: 'Hauptfriedhof Musterstadt',
+        friedhofMeerAdresse: 'Friedhofstraße 1, 12345 Musterstadt',
+        mitFeier: true,
+        grabart: 'Wahlgrab',
+        abteilung: 'A',
+        reihe: '12',
+        nummer: '5',
+        vorbelegungVorhanden: true,
+        vorbelegungName: 'Maria Mustermann',
+        zuletztBeigesetzt: '2020-03-10'
+      },
+      verstorbenerDaten: {
+        anrede: 'Herr',
+        vornamen: 'Max',
+        nachname: 'Mustermann',
+        geburtsdatum: '1950-05-15',
+        verstorbenAm: '2024-01-15',
+        strasse: 'Musterstraße',
+        hausnummer: '123',
+        plz: '12345',
+        ort: 'Musterstadt',
+        staatsangehoerigkeit: 'deutsch',
+        familienstand: 'verheiratet',
+        konfession: 'evangelisch'
+      },
+      auftraggeberDaten: {
+        anrede: 'Frau',
+        vornamen: 'Maria',
+        nachname: 'Mustermann',
+        geburtsdatum: '1955-08-20',
+        strasse: 'Musterstraße',
+        hausnummer: '123',
+        plz: '12345',
+        ort: 'Musterstadt',
+        telefon: '0123 456789',
+        email: 'maria.mustermann@email.de',
+        staatsangehoerigkeit: 'deutsch',
+        familienstand: 'verwitwet',
+        konfession: 'evangelisch',
+        beziehung: 'Ehepartner/in'
+      },
+      ehepartnerDaten: {
+        anrede: 'Frau',
+        vornamen: 'Maria',
+        nachname: 'Mustermann',
+        geburtsdatum: '1955-08-20',
+        strasse: 'Musterstraße',
+        hausnummer: '123',
+        plz: '12345',
+        ort: 'Musterstadt',
+        staatsangehoerigkeit: 'deutsch',
+        familienstand: 'verwitwet',
+        konfession: 'evangelisch'
+      }
+    },
+    {
+      id: '2',
+      typ: 'verstorbener',
+      name: 'Anna Schmidt',
+      verstorbenAm: '2024-02-20',
+      bestattungsdaten: {
+        bestattungsart: 'Feuerbestattung',
+        krematorium: 'Krematorium Hildesheim',
+        friedhofMeer: 'Waldfriedhof Schmidt',
+        mitFeier: true,
+        mitUrnenfeier: true,
+        grabart: 'Urnengrab'
+      },
+      verstorbenerDaten: {
+        anrede: 'Frau',
+        vornamen: 'Anna',
+        nachname: 'Schmidt',
+        geburtsdatum: '1940-12-03',
+        verstorbenAm: '2024-02-20',
+        strasse: 'Gartenweg',
+        hausnummer: '45',
+        plz: '31134',
+        ort: 'Hildesheim',
+        staatsangehoerigkeit: 'deutsch',
+        familienstand: 'ledig',
+        konfession: 'katholisch'
+      },
+      auftraggeberDaten: {
+        anrede: 'Herr',
+        vornamen: 'Peter',
+        nachname: 'Schmidt',
+        geburtsdatum: '1965-03-12',
+        strasse: 'Neue Straße',
+        hausnummer: '78',
+        plz: '31134',
+        ort: 'Hildesheim',
+        telefon: '05121 987654',
+        email: 'peter.schmidt@email.de',
+        staatsangehoerigkeit: 'deutsch',
+        familienstand: 'verheiratet',
+        konfession: 'katholisch',
+        beziehung: 'Kind'
+      }
+    },
+    {
+      id: '3',
+      typ: 'vorsorge',
+      name: 'Klaus Weber',
+      bestattungsdaten: {
+        bestattungsart: 'Seebestattung',
+        mitFeier: false,
+        grabart: 'Seebestattung Nord- oder Ostsee'
+      },
+      verstorbenerDaten: {
+        anrede: 'Herr',
+        vornamen: 'Klaus',
+        nachname: 'Weber',
+        geburtsdatum: '1960-07-30',
+        strasse: 'Seestraße',
+        hausnummer: '12',
+        plz: '31135',
+        ort: 'Hildesheim',
+        staatsangehoerigkeit: 'deutsch',
+        familienstand: 'geschieden',
+        konfession: 'konfessionslos'
+      },
+      auftraggeberDaten: {
+        anrede: 'Herr',
+        vornamen: 'Klaus',
+        nachname: 'Weber',
+        geburtsdatum: '1960-07-30',
+        strasse: 'Seestraße',
+        hausnummer: '12',
+        plz: '31135',
+        ort: 'Hildesheim',
+        telefon: '05121 555666',
+        email: 'klaus.weber@email.de',
+        staatsangehoerigkeit: 'deutsch',
+        familienstand: 'geschieden',
+        konfession: 'konfessionslos',
+        beziehung: 'Selbst'
+      }
+    }
+  ])
+  const loadVorlage = (vorlage: BestattungsVorlageData) => {
+    const newData: BestattungData = {
+      ...data,
+      bestattungsart: vorlage.bestattungsart,
+      krematorium: vorlage.krematorium,
+      krematoriumAdresse: vorlage.krematoriumAdresse,
+      friedhofMeer: vorlage.friedhofMeer,
+      friedhofMeerAdresse: vorlage.friedhofMeerAdresse,
+      mitFeier: vorlage.mitFeier,
+      mitSargfeier: vorlage.mitSargfeier,
+      mitUrnenfeier: vorlage.mitUrnenfeier,
+      grabart: vorlage.grabart,
+      abteilung: vorlage.abteilung,
+      reihe: vorlage.reihe,
+      bemerkungen: vorlage.bemerkungen
+    }
+    setData(newData)
+    setShowVorlagenModal(false)
+  }
+
+  const loadAktenDaten = (aktenEintrag: AktenEintragData, personType: 'verstorbener' | 'auftraggeber' | 'ehepartner') => {
+    const bestattungsdaten = aktenEintrag.bestattungsdaten
+    const newData: BestattungData = {
+      ...data,
+      ...bestattungsdaten
+    }
+    
+    // Automatisch Vorbelegung ausfüllen wenn vorhanden
+    if (bestattungsdaten.vorbelegungVorhanden && bestattungsdaten.vorbelegungName) {
+      newData.vorbelegungVorhanden = true
+      newData.vorbelegungName = bestattungsdaten.vorbelegungName
+      newData.zuletztBeigesetzt = bestattungsdaten.zuletztBeigesetzt
+    }
+    
+    setData(newData)
+    setShowAktenModal(false)
+  }
+
+  const createVorlage = () => {
+    if (!neueVorlageName.trim()) return
+    
+    const neueVorlage: BestattungsVorlageData = {
+      id: Date.now().toString(),
+      name: neueVorlageName,
+      beschreibung: neueVorlageBeschreibung,
+      bestattungsart: vorlageFelderAuswahl.bestattungsart ? data.bestattungsart : '',
+      krematorium: vorlageFelderAuswahl.krematorium ? data.krematorium : undefined,
+      krematoriumAdresse: vorlageFelderAuswahl.krematorium ? data.krematoriumAdresse : undefined,
+      friedhofMeer: vorlageFelderAuswahl.friedhofMeer ? data.friedhofMeer : undefined,
+      friedhofMeerAdresse: vorlageFelderAuswahl.friedhofMeer ? data.friedhofMeerAdresse : undefined,
+      mitFeier: vorlageFelderAuswahl.mitFeier ? data.mitFeier : false,
+      mitSargfeier: vorlageFelderAuswahl.mitSargfeier ? data.mitSargfeier : undefined,
+      mitUrnenfeier: vorlageFelderAuswahl.mitUrnenfeier ? data.mitUrnenfeier : undefined,
+      grabart: vorlageFelderAuswahl.grabart ? data.grabart : undefined,
+      abteilung: vorlageFelderAuswahl.abteilung ? data.abteilung : undefined,
+      reihe: vorlageFelderAuswahl.reihe ? data.reihe : undefined,
+      bemerkungen: vorlageFelderAuswahl.bemerkungen ? data.bemerkungen : undefined,
+      istSystemvorlage: false,
+      erstelltVon: 'Aktueller Benutzer', // TODO: Aus Auth Context holen
+      erstelltAm: new Date().toISOString().split('T')[0]
+    }
+    
+    setBestattungsvorlagen([...bestattungsvorlagen, neueVorlage])
+    setNeueVorlageName('')
+    setNeueVorlageBeschreibung('')
+    setVorlageFelderAuswahl({
+      bestattungsart: true,
+      krematorium: true,
+      friedhofMeer: true,
+      mitFeier: true,
+      mitSargfeier: true,
+      mitUrnenfeier: true,
+      grabart: true,
+      abteilung: false,
+      reihe: false,
+      bemerkungen: false
+    })
+    setShowCreateVorlageModal(false)
+  }
+
+  const deleteVorlage = (vorlageId: string) => {
+    const vorlage = bestattungsvorlagen.find(v => v.id === vorlageId)
+    if (vorlage && !vorlage.istSystemvorlage) {
+      setBestattungsvorlagen(bestattungsvorlagen.filter(v => v.id !== vorlageId))
+    }
+  }
+
+  // Gefilterte Listen für Suche
+  const gefilterteVorlagen = bestattungsvorlagen.filter(vorlage =>
+    vorlage.name.toLowerCase().includes(vorlagenSuchterm.toLowerCase()) ||
+    vorlage.beschreibung?.toLowerCase().includes(vorlagenSuchterm.toLowerCase()) ||
+    vorlage.bestattungsart.toLowerCase().includes(vorlagenSuchterm.toLowerCase())
+  )
+
+  const gefilterteAkten = aktenEintraege.filter(eintrag =>
+    eintrag.name.toLowerCase().includes(aktenSuchterm.toLowerCase()) ||
+    eintrag.typ.toLowerCase().includes(aktenSuchterm.toLowerCase()) ||
+    eintrag.bestattungsdaten.bestattungsart.toLowerCase().includes(aktenSuchterm.toLowerCase())
+  )
+
   const updateField = (field: keyof BestattungData, value: any) => {
     const newData = { ...data, [field]: value }
     
@@ -3134,11 +3903,31 @@ function BestattungTab({
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center space-x-4 mb-8">
-        <Church className="w-8 h-8 text-corda-gold" />
-        <div>
-          <h2 className="text-2xl font-bold text-white">Bestattung</h2>
-          <p className="text-gray-400">Bestattungsdetails und Grabstätte</p>
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center space-x-4">
+          <Church className="w-8 h-8 text-corda-gold" />
+          <div>
+            <h2 className="text-2xl font-bold text-white">Bestattung</h2>
+            <p className="text-gray-400">Bestattungsdetails und Grabstätte</p>
+          </div>
+        </div>
+        
+        <div className="flex space-x-3">
+          <button
+            onClick={() => setShowVorlagenModal(true)}
+            className="flex items-center space-x-2 px-4 py-2 bg-corda-gold/20 hover:bg-corda-gold/30 text-corda-gold border border-corda-gold/30 rounded-lg transition-all duration-200"
+          >
+            <FileText className="w-4 h-4" />
+            <span>Aus Vorlage auswählen</span>
+          </button>
+          
+          <button
+            onClick={() => setShowAktenModal(true)}
+            className="flex items-center space-x-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 rounded-lg transition-all duration-200"
+          >
+            <Copy className="w-4 h-4" />
+            <span>Aus Akte übernehmen</span>
+          </button>
         </div>
       </div>
 
@@ -3160,6 +3949,11 @@ function BestattungTab({
               value={data.krematorium}
               onChange={(value, addressData) => {
                 updateField('krematorium', value)
+                if (addressData) {
+                  updateField('krematoriumAdresse', addressData.address)
+                  updateField('krematoriumPlaceId', addressData.place_id)
+                  updateField('krematoriumGeometry', addressData.geometry)
+                }
               }}
               placeholder="Krematorium suchen..."
             />
@@ -3170,6 +3964,11 @@ function BestattungTab({
             value={data.friedhofMeer}
             onChange={(value, addressData) => {
               updateField('friedhofMeer', value)
+              if (addressData) {
+                updateField('friedhofMeerAdresse', addressData.address)
+                updateField('friedhofMeerPlaceId', addressData.place_id)
+                updateField('friedhofMeerGeometry', addressData.geometry)
+              }
             }}
             bestattungsart={auftragData.bestattungsart}
             placeholder={`${getFriedhofLabel()} suchen...`}
@@ -3557,6 +4356,392 @@ function BestattungTab({
         type="textarea"
         placeholder="Besondere Wünsche oder Anmerkungen..."
       />
+
+      {/* Vorlagen Modal */}
+      {showVorlagenModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-xl p-6 max-w-5xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-white">Bestattungsvorlage auswählen</h3>
+              <button
+                onClick={() => setShowVorlagenModal(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            {/* Suchfeld und Neue Vorlage Button */}
+            <div className="flex items-center space-x-4 mb-6">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="Vorlagen durchsuchen..."
+                  value={vorlagenSuchterm}
+                  onChange={(e) => setVorlagenSuchterm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-corda-gold focus:border-transparent"
+                />
+              </div>
+              <button
+                onClick={() => setShowCreateVorlageModal(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Neue Vorlage</span>
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              {gefilterteVorlagen.length === 0 ? (
+                <div className="text-center py-8 text-gray-400">
+                  <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>Keine Vorlagen gefunden</p>
+                </div>
+              ) : (
+                gefilterteVorlagen.map((vorlage) => (
+                  <div
+                    key={vorlage.id}
+                    className="bg-gray-700/50 rounded-lg p-4 hover:bg-gray-700/70 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div 
+                        className="flex-1 cursor-pointer"
+                        onClick={() => loadVorlage(vorlage)}
+                      >
+                        <h4 className="text-white font-medium">{vorlage.name}</h4>
+                        {vorlage.beschreibung && (
+                          <p className="text-gray-400 text-sm mt-1">{vorlage.beschreibung}</p>
+                        )}
+                        <div className="flex items-center space-x-4 mt-2 text-sm text-gray-300">
+                          <span>Bestattungsart: {vorlage.bestattungsart}</span>
+                          {vorlage.friedhofMeer && <span>Friedhof: {vorlage.friedhofMeer}</span>}
+                          {vorlage.grabart && <span>Grabart: {vorlage.grabart}</span>}
+                        </div>
+                        <div className="flex items-center space-x-2 mt-2 text-xs text-gray-400">
+                          <span>Erstellt von: {vorlage.erstelltVon}</span>
+                          <span>•</span>
+                          <span>{new Date(vorlage.erstelltAm || '').toLocaleDateString('de-DE')}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        {vorlage.istSystemvorlage && (
+                          <span className="px-2 py-1 bg-corda-gold/20 text-corda-gold text-xs rounded">
+                            System
+                          </span>
+                        )}
+                        {!vorlage.istSystemvorlage && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              deleteVorlage(vorlage.id)
+                            }}
+                            className="p-1 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded transition-colors"
+                            title="Vorlage löschen"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => loadVorlage(vorlage)}
+                          className="p-1 text-green-400 hover:text-green-300 hover:bg-green-500/20 rounded transition-colors"
+                          title="Vorlage verwenden"
+                        >
+                          <Check className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Akten Modal */}
+      {showAktenModal && (
+        <AktenModal
+          isOpen={showAktenModal}
+          onClose={() => setShowAktenModal(false)}
+          onLoadAktenDaten={loadAktenDaten}
+          defaultPersonType="verstorbener"
+          title="Bestattungsdaten aus Akte übernehmen"
+        />
+      )}
+
+      {/* Neue Vorlage erstellen Modal */}
+      {showCreateVorlageModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-white">Neue Bestattungsvorlage erstellen</h3>
+              <button
+                onClick={() => {
+                  setShowCreateVorlageModal(false)
+                  setNeueVorlageName('')
+                  setNeueVorlageBeschreibung('')
+                  setVorlageFelderAuswahl({
+                    bestattungsart: true,
+                    krematorium: true,
+                    friedhofMeer: true,
+                    mitFeier: true,
+                    mitSargfeier: true,
+                    mitUrnenfeier: true,
+                    grabart: true,
+                    abteilung: false,
+                    reihe: false,
+                    bemerkungen: false
+                  })
+                }}
+                className="text-gray-400 hover:text-white"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Vorlagenname *
+                  </label>
+                  <input
+                    type="text"
+                    value={neueVorlageName}
+                    onChange={(e) => setNeueVorlageName(e.target.value)}
+                    placeholder="z.B. Meine Standard Erdbestattung"
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-corda-gold focus:border-transparent"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Beschreibung (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={neueVorlageBeschreibung}
+                    onChange={(e) => setNeueVorlageBeschreibung(e.target.value)}
+                    placeholder="Kurze Beschreibung der Vorlage..."
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-corda-gold focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div className="bg-gray-700/30 rounded-lg p-4">
+                <h4 className="text-white font-medium mb-4 flex items-center">
+                  <Settings className="w-5 h-5 mr-2" />
+                  Felder auswählen, die in die Vorlage übernommen werden sollen:
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <label className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-600/30 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={vorlageFelderAuswahl.bestattungsart}
+                      onChange={(e) => setVorlageFelderAuswahl({...vorlageFelderAuswahl, bestattungsart: e.target.checked})}
+                      className="w-4 h-4 text-corda-gold bg-gray-700 border-gray-600 rounded focus:ring-corda-gold focus:ring-2"
+                    />
+                    <span className="text-sm text-gray-300">Bestattungsart</span>
+                    {data.bestattungsart && (
+                      <span className="text-xs text-gray-400">({data.bestattungsart})</span>
+                    )}
+                  </label>
+                  
+                  <label className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-600/30 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={vorlageFelderAuswahl.krematorium}
+                      onChange={(e) => setVorlageFelderAuswahl({...vorlageFelderAuswahl, krematorium: e.target.checked})}
+                      className="w-4 h-4 text-corda-gold bg-gray-700 border-gray-600 rounded focus:ring-corda-gold focus:ring-2"
+                    />
+                    <span className="text-sm text-gray-300">Krematorium</span>
+                    {data.krematorium && (
+                      <span className="text-xs text-gray-400 truncate">({data.krematorium})</span>
+                    )}
+                  </label>
+                  
+                  <label className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-600/30 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={vorlageFelderAuswahl.friedhofMeer}
+                      onChange={(e) => setVorlageFelderAuswahl({...vorlageFelderAuswahl, friedhofMeer: e.target.checked})}
+                      className="w-4 h-4 text-corda-gold bg-gray-700 border-gray-600 rounded focus:ring-corda-gold focus:ring-2"
+                    />
+                    <span className="text-sm text-gray-300">Friedhof/Meer</span>
+                    {data.friedhofMeer && (
+                      <span className="text-xs text-gray-400 truncate">({data.friedhofMeer})</span>
+                    )}
+                  </label>
+                  
+                  <label className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-600/30 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={vorlageFelderAuswahl.mitFeier}
+                      onChange={(e) => setVorlageFelderAuswahl({...vorlageFelderAuswahl, mitFeier: e.target.checked})}
+                      className="w-4 h-4 text-corda-gold bg-gray-700 border-gray-600 rounded focus:ring-corda-gold focus:ring-2"
+                    />
+                    <span className="text-sm text-gray-300">Mit Trauerfeier</span>
+                    <span className="text-xs text-gray-400">({data.mitFeier ? 'Ja' : 'Nein'})</span>
+                  </label>
+                  
+                  <label className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-600/30 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={vorlageFelderAuswahl.mitSargfeier}
+                      onChange={(e) => setVorlageFelderAuswahl({...vorlageFelderAuswahl, mitSargfeier: e.target.checked})}
+                      className="w-4 h-4 text-corda-gold bg-gray-700 border-gray-600 rounded focus:ring-corda-gold focus:ring-2"
+                    />
+                    <span className="text-sm text-gray-300">Mit Sargfeier</span>
+                    {data.mitSargfeier && (
+                      <span className="text-xs text-gray-400">(Ja)</span>
+                    )}
+                  </label>
+                  
+                  <label className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-600/30 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={vorlageFelderAuswahl.mitUrnenfeier}
+                      onChange={(e) => setVorlageFelderAuswahl({...vorlageFelderAuswahl, mitUrnenfeier: e.target.checked})}
+                      className="w-4 h-4 text-corda-gold bg-gray-700 border-gray-600 rounded focus:ring-corda-gold focus:ring-2"
+                    />
+                    <span className="text-sm text-gray-300">Mit Urnenfeier</span>
+                    {data.mitUrnenfeier && (
+                      <span className="text-xs text-gray-400">(Ja)</span>
+                    )}
+                  </label>
+                  
+                  <label className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-600/30 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={vorlageFelderAuswahl.grabart}
+                      onChange={(e) => setVorlageFelderAuswahl({...vorlageFelderAuswahl, grabart: e.target.checked})}
+                      className="w-4 h-4 text-corda-gold bg-gray-700 border-gray-600 rounded focus:ring-corda-gold focus:ring-2"
+                    />
+                    <span className="text-sm text-gray-300">Grabart</span>
+                    {data.grabart && (
+                      <span className="text-xs text-gray-400">({data.grabart})</span>
+                    )}
+                  </label>
+                  
+                  <label className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-600/30 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={vorlageFelderAuswahl.abteilung}
+                      onChange={(e) => setVorlageFelderAuswahl({...vorlageFelderAuswahl, abteilung: e.target.checked})}
+                      className="w-4 h-4 text-corda-gold bg-gray-700 border-gray-600 rounded focus:ring-corda-gold focus:ring-2"
+                    />
+                    <span className="text-sm text-gray-300">Abteilung</span>
+                    {data.abteilung && (
+                      <span className="text-xs text-gray-400">({data.abteilung})</span>
+                    )}
+                  </label>
+                  
+                  <label className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-600/30 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={vorlageFelderAuswahl.reihe}
+                      onChange={(e) => setVorlageFelderAuswahl({...vorlageFelderAuswahl, reihe: e.target.checked})}
+                      className="w-4 h-4 text-corda-gold bg-gray-700 border-gray-600 rounded focus:ring-corda-gold focus:ring-2"
+                    />
+                    <span className="text-sm text-gray-300">Reihe</span>
+                    {data.reihe && (
+                      <span className="text-xs text-gray-400">({data.reihe})</span>
+                    )}
+                  </label>
+                  
+                  <label className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-600/30 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={vorlageFelderAuswahl.bemerkungen}
+                      onChange={(e) => setVorlageFelderAuswahl({...vorlageFelderAuswahl, bemerkungen: e.target.checked})}
+                      className="w-4 h-4 text-corda-gold bg-gray-700 border-gray-600 rounded focus:ring-corda-gold focus:ring-2"
+                    />
+                    <span className="text-sm text-gray-300">Bemerkungen</span>
+                    {data.bemerkungen && (
+                      <span className="text-xs text-gray-400">(vorhanden)</span>
+                    )}
+                  </label>
+                </div>
+                
+                <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-600">
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => setVorlageFelderAuswahl({
+                        bestattungsart: true,
+                        krematorium: true,
+                        friedhofMeer: true,
+                        mitFeier: true,
+                        mitSargfeier: true,
+                        mitUrnenfeier: true,
+                        grabart: true,
+                        abteilung: true,
+                        reihe: true,
+                        bemerkungen: true
+                      })}
+                      className="px-3 py-1 text-xs bg-gray-600 hover:bg-gray-500 text-white rounded transition-colors"
+                    >
+                      Alle auswählen
+                    </button>
+                    <button
+                      onClick={() => setVorlageFelderAuswahl({
+                        bestattungsart: false,
+                        krematorium: false,
+                        friedhofMeer: false,
+                        mitFeier: false,
+                        mitSargfeier: false,
+                        mitUrnenfeier: false,
+                        grabart: false,
+                        abteilung: false,
+                        reihe: false,
+                        bemerkungen: false
+                      })}
+                      className="px-3 py-1 text-xs bg-gray-600 hover:bg-gray-500 text-white rounded transition-colors"
+                    >
+                      Alle abwählen
+                    </button>
+                  </div>
+                  <span className="text-xs text-gray-400">
+                    {Object.values(vorlageFelderAuswahl).filter(Boolean).length} von {Object.keys(vorlageFelderAuswahl).length} Feldern ausgewählt
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-end space-x-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowCreateVorlageModal(false)
+                  setNeueVorlageName('')
+                  setNeueVorlageBeschreibung('')
+                  setVorlageFelderAuswahl({
+                    bestattungsart: true,
+                    krematorium: true,
+                    friedhofMeer: true,
+                    mitFeier: true,
+                    mitSargfeier: true,
+                    mitUrnenfeier: true,
+                    grabart: true,
+                    abteilung: false,
+                    reihe: false,
+                    bemerkungen: false
+                  })
+                }}
+                className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={createVorlage}
+                disabled={!neueVorlageName.trim()}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+              >
+                Vorlage erstellen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -3575,6 +4760,7 @@ function PostenTab({
 }) {
   const [showPostenVorlagen, setShowPostenVorlagen] = useState(false)
   const [showListenManager, setShowListenManager] = useState(false)
+  const [showPostenAktenModal, setShowPostenAktenModal] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedKategorie, setSelectedKategorie] = useState('')
   const [selectedTyp, setSelectedTyp] = useState('alle')
@@ -3844,6 +5030,74 @@ function PostenTab({
     setData(data.filter(posten => posten.id !== id))
   }
 
+  // Funktion um Posten aus einer Akte zu laden
+  const loadPostenFromAkte = (aktenEintrag: AktenEintragData) => {
+    // Simuliere das Laden von Posten aus einer Akte
+    // In einer echten Implementation würde das über eine API erfolgen
+    const mockPostenData: PostenData[] = []
+    
+    // Erstelle Beispiel-Posten basierend auf dem Aktentyp und der Bestattungsart
+    if (aktenEintrag.typ === 'verstorbener' || aktenEintrag.typ === 'vorsorge') {
+      const bestattungsart = aktenEintrag.bestattungsdaten?.bestattungsart || ''
+      
+      if (bestattungsart === 'Erdbestattung') {
+        mockPostenData.push(
+          {
+            id: `from-akte-${Date.now()}-1`,
+            typ: 'eigen',
+            bezeichnung: 'Überführung',
+            einzelpreis: 150.00,
+            anzahl: 1,
+            gesamtpreis: 150.00,
+            kategorie: 'Transport',
+            isVorlage: false,
+            isCustom: false
+          },
+          {
+            id: `from-akte-${Date.now()}-2`,
+            typ: 'eigen',
+            bezeichnung: 'Sarg Eiche',
+            einzelpreis: 850.00,
+            anzahl: 1,
+            gesamtpreis: 850.00,
+            kategorie: 'Sarg',
+            isVorlage: false,
+            isCustom: false
+          }
+        )
+      } else if (bestattungsart === 'Feuerbestattung') {
+        mockPostenData.push(
+          {
+            id: `from-akte-${Date.now()}-1`,
+            typ: 'eigen',
+            bezeichnung: 'Kremationssarg',
+            einzelpreis: 450.00,
+            anzahl: 1,
+            gesamtpreis: 450.00,
+            kategorie: 'Sarg',
+            isVorlage: false,
+            isCustom: false
+          },
+          {
+            id: `from-akte-${Date.now()}-2`,
+            typ: 'fremd',
+            bezeichnung: 'Krematoriumsgebühren',
+            einzelpreis: 320.00,
+            anzahl: 1,
+            gesamtpreis: 320.00,
+            kategorie: 'Krematorium',
+            isVorlage: false,
+            isCustom: false
+          }
+        )
+      }
+    }
+    
+    // Füge die geladenen Posten zu den bestehenden hinzu
+    setData([...data, ...mockPostenData])
+    setShowPostenAktenModal(false)
+  }
+
   const gesamtsumme = data.reduce((sum, posten) => sum + posten.gesamtpreis, 0)
 
   const filteredVorlagen = standardVorlagen.filter(vorlage => {
@@ -3859,20 +5113,22 @@ function PostenTab({
   return (
     <div className="space-y-8">
       {/* Header mit Buttons */}
-      <div className="mb-6">
-        <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
-          <div className="flex-shrink-0">
-            <h2 className="text-2xl font-bold text-white flex items-center space-x-3">
-              <Package className="w-8 h-8 text-corda-gold" />
-              <span>Postenübersicht</span>
-            </h2>
-            <p className="text-gray-400 mt-1">Verwaltung aller Bestattungsposten</p>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 xl:gap-4">
-            {/* Brutto/Netto Toggle */}
-            <div className="flex items-center justify-center space-x-3 bg-gray-800/50 rounded-lg p-3 min-w-0">
-              <span className="text-sm text-gray-300">Preise:</span>
+      <div className="mb-6 relative">
+        {/* Hauptüberschrift */}
+        <div className="flex-shrink-0 max-w-[calc(100%-280px)]">
+          <h2 className="text-2xl font-bold text-white flex items-center space-x-3">
+            <Package className="w-8 h-8 text-corda-gold" />
+            <span>Postenübersicht</span>
+          </h2>
+          <p className="text-gray-400 mt-1">Verwaltung aller Bestattungsposten</p>
+        </div>
+
+        {/* Buttons Container - Absolute positioniert */}
+        <div style={{ position: 'absolute', top: '2rem', right: '-16rem' }} className="flex flex-col gap-3 min-w-[240px] z-10">
+          {/* Brutto/Netto Toggle */}
+          <div className="flex items-center justify-between bg-gray-800/50 rounded-lg p-3">
+            <span className="text-sm text-gray-300">Preise:</span>
+            <div className="flex items-center space-x-3">
               <button
                 onClick={() => setShowBruttoPreise(!showBruttoPreise)}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-corda-gold focus:ring-offset-2 focus:ring-offset-gray-800 ${
@@ -3889,30 +5145,38 @@ function PostenTab({
                 {showBruttoPreise ? 'Brutto' : 'Netto'}
               </span>
             </div>
-
-            {/* Action Buttons Container */}
-            <div className="flex flex-col sm:flex-row gap-3 min-w-0">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setShowListenManager(true)}
-                className="bg-gray-700 hover:bg-gray-600 text-white font-semibold px-4 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors whitespace-nowrap"
-              >
-                <List className="w-4 h-4 flex-shrink-0" />
-                <span>Listen verwalten</span>
-              </motion.button>
-
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setShowPostenVorlagen(true)}
-                className="bg-gradient-to-r from-corda-gold to-yellow-500 text-black font-semibold px-4 py-2 rounded-lg shadow-lg shadow-corda-gold/25 hover:shadow-corda-gold/40 transition-all duration-300 flex items-center justify-center space-x-2 whitespace-nowrap"
-              >
-                <Plus className="w-4 h-4 flex-shrink-0" />
-                <span>Posten hinzufügen</span>
-              </motion.button>
-            </div>
           </div>
+
+          {/* Action Buttons */}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setShowListenManager(true)}
+            className="bg-gray-700 hover:bg-gray-600 text-white font-semibold px-4 py-3 rounded-lg flex items-center justify-between transition-colors"
+          >
+            <span>Listen verwalten</span>
+            <List className="w-4 h-4 flex-shrink-0" />
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setShowPostenAktenModal(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-3 rounded-lg flex items-center justify-between transition-colors"
+          >
+            <span>Aus Akte übernehmen</span>
+            <FolderOpen className="w-4 h-4 flex-shrink-0" />
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setShowPostenVorlagen(true)}
+            className="bg-gradient-to-r from-corda-gold to-yellow-500 text-black font-semibold px-4 py-3 rounded-lg flex items-center justify-between transition-all duration-300 shadow-lg shadow-corda-gold/25 hover:shadow-corda-gold/40"
+          >
+            <span>Posten hinzufügen</span>
+            <Plus className="w-4 h-4 flex-shrink-0" />
+          </motion.button>
         </div>
       </div>
 
@@ -4399,6 +5663,36 @@ function PostenTab({
           </motion.div>
         </div>
       )}
+
+      {/* Akten Modal für Posten */}
+      {showPostenAktenModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-gray-800 rounded-xl p-6 max-w-4xl w-full max-h-[80vh] overflow-y-auto mx-4"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-white">Posten aus Akte übernehmen</h3>
+              <button
+                onClick={() => setShowPostenAktenModal(false)}
+                className="text-gray-400 hover:text-white p-1"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <AktenModal
+              isOpen={true}
+              onClose={() => setShowPostenAktenModal(false)}
+              onLoadAktenDaten={(aktenEintrag, personType) => loadPostenFromAkte(aktenEintrag)}
+              defaultPersonType="verstorbener"
+              title="Wähle eine Akte aus"
+              searchPlaceholder="Nach Akte mit Posten suchen..."
+            />
+          </motion.div>
+        </div>
+      )}
     </div>
   )
 }
@@ -4677,16 +5971,157 @@ function KrematoriumAutocompleteField({
   placeholder?: string
   className?: string
 }) {
+  const [suggestions, setSuggestions] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [inputValue, setInputValue] = useState(value || '')
+  const suggestionRefs = useRef<(HTMLLIElement | null)[]>([])
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1)
+  const searchTimeoutRef = useRef<NodeJS.Timeout>()
+  const wrapperRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => { setInputValue(value || '') }, [value])
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false)
+        setActiveSuggestionIndex(-1)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const searchKrematorien = async (query: string) => {
+    if (query.trim().length < 2) {
+      setSuggestions([]); setShowSuggestions(false); return
+    }
+
+    // Prüfen, ob der Nutzer bereits einschlägige Keywords eingegeben hat
+    const kws = ['kremator', 'cremator', 'feuerbestatt']
+    const hasKeyword = kws.some(k => query.toLowerCase().includes(k))
+
+    // Falls nicht, hänge "krematorium" an, damit die Google-API dennoch passende Treffer liefert
+    const searchInput = hasKeyword ? query : `${query} krematorium`
+
+    setIsLoading(true)
+    try {
+      let res = await fetch('/api/places-autocomplete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input: searchInput, includedPrimaryTypes: ['funeral_home', 'cemetery'], languageCode: 'de', regionCode: 'DE' })
+      })
+      if (!res.ok) throw new Error('API Error ' + res.status)
+      let data = await res.json()
+      // Ergebnisse weiterhin nach relevanten Keywords filtern, um Bestattungsinstitute auszuschließen
+      let filtered = (data.suggestions || []).filter((s: any) => {
+        const txt = `${s.fullText || s.text || ''} ${s.mainText || ''} ${s.secondaryText || ''}`.toLowerCase()
+        return kws.some(k => txt.includes(k))
+      })
+
+      // Fallback: wenn keine Ergebnisse, erneut ohne Typfilter suchen
+      if (filtered.length === 0) {
+        res = await fetch('/api/places-autocomplete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ input: searchInput, languageCode: 'de', regionCode: 'DE' })
+        })
+        if (res.ok) {
+          data = await res.json()
+          filtered = (data.suggestions || []).filter((s: any) => {
+            const txt = `${s.fullText || s.text || ''} ${s.mainText || ''} ${s.secondaryText || ''}`.toLowerCase()
+            return kws.some(k => txt.includes(k))
+          })
+        }
+      }
+      setSuggestions(filtered)
+      setShowSuggestions(filtered.length > 0)
+      setActiveSuggestionIndex(-1)
+    } catch (err) {
+      console.error('Krematorium-Suche Fehler:', err)
+      setSuggestions([]); setShowSuggestions(false)
+    } finally { setIsLoading(false) }
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value
+    setInputValue(v)
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
+    searchTimeoutRef.current = setTimeout(() => searchKrematorien(v), 300)
+  }
+
+  const handleSuggestionClick = async (s: any) => {
+    let displayText = s.text || s.fullText || s.mainText
+    let addressData: any = { name: s.mainText || s.text, address: displayText, place_id: s.placeId, geometry: null }
+    if (s.placeId) {
+      try {
+        const res = await fetch(`/api/places-autocomplete?placeId=${encodeURIComponent(s.placeId)}`)
+        if (res.ok) {
+          const d = await res.json(); addressData = { ...addressData, ...d, address: d.formatted_address || displayText }
+        }
+      } catch {}
+    }
+    setInputValue(addressData.name || displayText)
+    onChange(addressData.name || displayText, addressData)
+    setShowSuggestions(false); setActiveSuggestionIndex(-1)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions || suggestions.length === 0) return
+    switch (e.key) {
+      case 'ArrowDown': e.preventDefault(); setActiveSuggestionIndex(i => i < suggestions.length - 1 ? i + 1 : 0); break
+      case 'ArrowUp': e.preventDefault(); setActiveSuggestionIndex(i => i > 0 ? i - 1 : suggestions.length - 1); break
+      case 'Enter': e.preventDefault(); if (activeSuggestionIndex >= 0) handleSuggestionClick(suggestions[activeSuggestionIndex]); break
+      case 'Escape': setShowSuggestions(false); setActiveSuggestionIndex(-1); break
+    }
+  }
+
+  useEffect(() => {
+    if (activeSuggestionIndex >= 0 && suggestionRefs.current[activeSuggestionIndex]) {
+      suggestionRefs.current[activeSuggestionIndex]!.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [activeSuggestionIndex])
+
   return (
-    <div className={`space-y-2 ${className}`}>
+    <div className={`space-y-2 ${className}`} ref={wrapperRef}>
       <label className="block text-sm font-medium text-gray-300">{label}</label>
-      <input
-        type="text"
-        value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full bg-gray-800/50 border border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:border-corda-gold focus:ring-2 focus:ring-corda-gold/20 transition-all duration-300"
-      />
+      <div className="relative">
+        <div className="relative">
+          <input
+            type="text"
+            value={inputValue}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            className="w-full bg-gray-800/50 border border-gray-600 rounded-xl px-4 py-3 pr-10 text-white placeholder-gray-400 focus:border-corda-gold focus:ring-2 focus:ring-corda-gold/20 transition-all duration-300"
+          />
+          <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+            {isLoading ? (<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-corda-gold"></div>) : (<Search className="h-4 w-4 text-gray-400" />)}
+          </div>
+        </div>
+        {showSuggestions && (
+          <div className="absolute z-50 w-full mt-1 bg-gray-800 border border-gray-600 rounded-xl shadow-2xl max-h-64 overflow-y-auto">
+            {suggestions.length > 0 ? (
+              <ul className="py-1">
+                {suggestions.map((s, idx) => (
+                  <li
+                    key={s.placeId}
+                    ref={el => { suggestionRefs.current[idx] = el }}
+                    onClick={() => handleSuggestionClick(s)}
+                    className={`px-4 py-3 cursor-pointer transition-colors duration-150 border-b border-gray-700/50 last:border-b-0 ${idx === activeSuggestionIndex ? 'bg-corda-gold/20 text-corda-gold' : 'text-gray-200 hover:bg-gray-700/40'}`}
+                  >
+                    <div className="font-medium text-sm truncate">{s.mainText || s.text}</div>
+                    {s.secondaryText && (<div className="text-xs text-gray-400 mt-1 truncate">{s.secondaryText}</div>)}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="px-4 py-3 text-gray-400 text-sm">Keine Krematorien gefunden</div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -4707,16 +6142,218 @@ function FriedhofAutocompleteField({
   placeholder?: string
   className?: string
 }) {
+  const [suggestions, setSuggestions] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [inputValue, setInputValue] = useState(value || '')
+  const suggestionRefs = useRef<(HTMLLIElement | null)[]>([])
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1)
+  const searchTimeoutRef = useRef<NodeJS.Timeout>()
+  const wrapperRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setInputValue(value || '')
+  }, [value])
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false)
+        setActiveSuggestionIndex(-1)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
+  const searchFriedhoefe = async (query: string) => {
+    if (query.trim().length < 2) {
+      setSuggestions([])
+      setShowSuggestions(false)
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const response = await fetch('/api/places-autocomplete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          input: query,
+          includedPrimaryTypes: ['cemetery'],
+          languageCode: 'de',
+          regionCode: 'DE'
+        })
+      })
+      if (!response.ok) throw new Error(`API Error: ${response.status}`)
+      const data = await response.json()
+      setSuggestions(data.suggestions || [])
+      setShowSuggestions((data.suggestions || []).length > 0)
+      setActiveSuggestionIndex(-1)
+    } catch (error) {
+      console.error('Fehler bei der Friedhof-Suche:', error)
+      setSuggestions([])
+      setShowSuggestions(false)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value
+    setInputValue(newValue)
+    
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
+    }
+    
+    searchTimeoutRef.current = setTimeout(() => {
+      searchFriedhoefe(newValue)
+    }, 300)
+  }
+
+  const handleSuggestionClick = async (suggestion: any) => {
+    // Wenn PlaceId vorhanden, Details abrufen
+    let displayText = suggestion.text || suggestion.fullText || suggestion.mainText
+    let addressData: any = {
+      name: suggestion.mainText || suggestion.text,
+      address: displayText,
+      place_id: suggestion.placeId,
+      geometry: null
+    }
+
+    if (suggestion.placeId) {
+      try {
+        const res = await fetch(`/api/places-autocomplete?placeId=${encodeURIComponent(suggestion.placeId)}`)
+        if (res.ok) {
+          const details = await res.json()
+          addressData.address = details.formatted_address || displayText
+          addressData = { ...addressData, ...details }
+        }
+      } catch (e) {
+        console.error('Details API error:', e)
+      }
+    }
+
+    setInputValue(addressData.name || displayText)
+    onChange(addressData.name || displayText, addressData)
+    setShowSuggestions(false)
+    setActiveSuggestionIndex(-1)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions || suggestions.length === 0) return
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault()
+        setActiveSuggestionIndex(prev => 
+          prev < suggestions.length - 1 ? prev + 1 : 0
+        )
+        break
+      case 'ArrowUp':
+        e.preventDefault()
+        setActiveSuggestionIndex(prev => 
+          prev > 0 ? prev - 1 : suggestions.length - 1
+        )
+        break
+      case 'Enter':
+        e.preventDefault()
+        if (activeSuggestionIndex >= 0 && suggestions[activeSuggestionIndex]) {
+          handleSuggestionClick(suggestions[activeSuggestionIndex])
+        }
+        break
+      case 'Escape':
+        setShowSuggestions(false)
+        setActiveSuggestionIndex(-1)
+        break
+    }
+  }
+
+  useEffect(() => {
+    if (activeSuggestionIndex >= 0 && suggestionRefs.current[activeSuggestionIndex]) {
+      suggestionRefs.current[activeSuggestionIndex]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest'
+      })
+    }
+  }, [activeSuggestionIndex])
+
   return (
-    <div className={`space-y-2 ${className}`}>
+    <div className={`space-y-2 ${className}`} ref={wrapperRef}>
       <label className="block text-sm font-medium text-gray-300">{label}</label>
-      <input
-        type="text"
-        value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full bg-gray-800/50 border border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:border-corda-gold focus:ring-2 focus:ring-corda-gold/20 transition-all duration-300"
-      />
+      <div className="relative">
+        <div className="relative">
+          <input
+            type="text"
+            value={inputValue}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            className="w-full bg-gray-800/50 border border-gray-600 rounded-xl px-4 py-3 pr-10 text-white placeholder-gray-400 focus:border-corda-gold focus:ring-2 focus:ring-corda-gold/20 transition-all duration-300"
+          />
+          <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+            {isLoading ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-corda-gold"></div>
+            ) : (
+              <Search className="h-4 w-4 text-gray-400" />
+            )}
+          </div>
+        </div>
+        
+        {showSuggestions && suggestions.length > 0 && (
+          <div className="absolute z-50 w-full mt-1 bg-gray-800 border border-gray-600 rounded-xl shadow-2xl max-h-64 overflow-y-auto">
+            <ul className="py-1">
+              {suggestions.map((place, index) => (
+                                 <li
+                   key={place.place_id}
+                   ref={el => { suggestionRefs.current[index] = el }}
+                   onClick={() => handleSuggestionClick(place)}
+                  className={`px-4 py-3 cursor-pointer transition-colors duration-150 border-b border-gray-700/50 last:border-b-0 ${
+                    index === activeSuggestionIndex 
+                      ? 'bg-corda-gold/20 text-corda-gold' 
+                      : 'text-gray-200 hover:bg-gray-700/40'
+                  }`}
+                >
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 mt-1">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm truncate">
+                        {place.mainText || place.text}
+                      </div>
+                      {place.secondaryText && (
+                        <div className="text-xs text-gray-400 mt-1 truncate">
+                          {place.secondaryText}
+                        </div>
+                      )}
+                      {place.rating && (
+                        <div className="flex items-center mt-1 text-xs text-yellow-400">
+                          ⭐ {place.rating}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        
+        {showSuggestions && suggestions.length === 0 && !isLoading && inputValue.trim().length >= 2 && (
+          <div className="absolute z-50 w-full mt-1 bg-gray-800 border border-gray-600 rounded-xl shadow-2xl">
+            <div className="px-4 py-3 text-gray-400 text-sm">
+              Keine Friedhöfe gefunden
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
